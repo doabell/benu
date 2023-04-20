@@ -1,9 +1,9 @@
-import React from 'react';
+import React from "react";
 import { DatePicker } from "@mui/x-date-pickers";
-import { IconButton, Stack } from '@mui/material';
-import ArrowBackIosIcon from '@mui/icons-material/ArrowBackIos';
-import ArrowForwardIosIcon from '@mui/icons-material/ArrowForwardIos';
-import dayjs from 'dayjs';
+import { IconButton, Stack } from "@mui/material";
+import ArrowBackIosIcon from "@mui/icons-material/ArrowBackIos";
+import ArrowForwardIosIcon from "@mui/icons-material/ArrowForwardIos";
+import dayjs from "dayjs";
 
 interface DateSelectorProps {
   date: dayjs.Dayjs;
@@ -12,10 +12,10 @@ interface DateSelectorProps {
 
 const DateSelector: React.FC<DateSelectorProps> = ({ date, onDateChange }) => {
   const lastDay = (() => {
-    onDateChange(date.subtract(1, 'day'))
+    onDateChange(date.subtract(1, "day"));
   });
   const nextDay = (() => {
-    onDateChange(date.add(1, 'day'))
+    onDateChange(date.add(1, "day"));
   });
   return (
     <Stack
@@ -24,7 +24,7 @@ const DateSelector: React.FC<DateSelectorProps> = ({ date, onDateChange }) => {
       justifyContent="center"
       alignItems="center"
     >
-    <IconButton aria-label="last day" onClick={lastDay} size='small'>
+    <IconButton aria-label="last day" onClick={lastDay} size="small">
       <ArrowBackIosIcon />
     </IconButton>
     <DatePicker
@@ -32,7 +32,7 @@ const DateSelector: React.FC<DateSelectorProps> = ({ date, onDateChange }) => {
       value={date}
       onChange={onDateChange}
     />
-    <IconButton aria-label="next day" onClick={nextDay} size='small'>
+    <IconButton aria-label="next day" onClick={nextDay} size="small">
       <ArrowForwardIosIcon />
     </IconButton>
     </Stack>

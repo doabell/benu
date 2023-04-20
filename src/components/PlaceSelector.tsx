@@ -1,7 +1,7 @@
-import React from 'react';
-import { ToggleButton, ToggleButtonGroup } from '@mui/material';
+import React from "react";
+import { Tab, Tabs } from "@mui/material";
 
-import halls from '@/data/halls.json';
+import halls from "@/data/halls.json";
 
 interface PlaceSelectorProps {
   place: string;
@@ -9,29 +9,25 @@ interface PlaceSelectorProps {
 }
 
 const PlaceSelector: React.FC<PlaceSelectorProps> = ({ place, onPlaceChange }) => {
-  const changePlace = (_event: React.MouseEvent, place: string) => {
-    onPlaceChange(place);
-  }
+  const changePlace = (_event: React.SyntheticEvent, newPlace: string) => {
+    onPlaceChange(newPlace);
+  };
 
-  const placeButtons = halls.map(({ id, name }) => (
-    <ToggleButton
-      key={id}
-      value={id}
-      selected={place === id}
-    >
-      {name}
-    </ToggleButton>
+  const placeTabs = halls.map(({ id, name }) => (
+    <Tab key={id} label={name} value={id} />
   ));
 
   return (
-    <ToggleButtonGroup
-      color="primary"
-      exclusive
-      onChange={changePlace}
-    >
-        {placeButtons}
-    </ToggleButtonGroup>
-    );
+      <Tabs
+        value={place}
+        onChange={changePlace}
+        variant="scrollable"
+        scrollButtons="auto"
+        aria-label="Select dining hall"
+      >
+        {placeTabs}
+      </Tabs>
+  );
 };
 
 export default PlaceSelector;

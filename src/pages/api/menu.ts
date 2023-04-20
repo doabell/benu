@@ -1,6 +1,6 @@
-import { NextApiRequest, NextApiResponse } from 'next';
-import MenuItem from '@/models/MenuItem';
-import ApiResponse from '@/models/ApiResponse';
+import { NextApiRequest, NextApiResponse } from "next";
+import MenuItem from "@/models/MenuItem";
+import ApiResponse from "@/models/ApiResponse";
 
 export default async function handler(
   req: NextApiRequest,
@@ -13,15 +13,15 @@ export default async function handler(
 
   const { dateStr, place, meal } = req.query;
 
-  if (typeof dateStr !== 'string') {
+  if (typeof dateStr !== "string") {
     return res.status(400).end();
   }
 
-  const [year, month, day] = dateStr.split('-');
+  const [year, month, day] = dateStr.split("-");
 
   const date = new Date(parseInt(year, 10), parseInt(month, 10) - 1, parseInt(day, 10));
 
-  const url = `https://middlebury.api.nutrislice.com/menu/api/weeks/school/${place}/menu-type/${meal}/${year}/${month.toString().padStart(2, '0')}/${day.toString().padStart(2, '0')}/?format=json`;
+  const url = `https://middlebury.api.nutrislice.com/menu/api/weeks/school/${place}/menu-type/${meal}/${year}/${month.toString().padStart(2, "0")}/${day.toString().padStart(2, "0")}/?format=json`;
 
   const response = await fetch(url);
 
@@ -32,7 +32,7 @@ export default async function handler(
   const data: ApiResponse = await response.json();
 
   const items = data.days
-    .find((day) => day.date === date.toISOString().substring(0, 10))
+    .find((daytoFind) => daytoFind.date === date.toISOString().substring(0, 10))
     ?.menu_items;
 
   if (!items) {

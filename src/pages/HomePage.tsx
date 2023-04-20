@@ -1,13 +1,14 @@
-import React, { useState, useEffect } from 'react';
-import dayjs from 'dayjs';
-import DateSelector from '../components/DateSelector';
-import MealSelector from '../components/MealSelector';
-import PlaceSelector from '../components/PlaceSelector';
-import MenuItems from '../components/MenuItems';
-import { LinearProgress, Stack } from '@mui/material';
+import React, { useState, useEffect } from "react";
+import dayjs from "dayjs";
+import DateSelector from "../components/DateSelector";
+import MealSelector from "../components/MealSelector";
+import PlaceSelector from "../components/PlaceSelector";
+import MenuItems from "../components/MenuItems";
+import Grid from "@mui/material/Unstable_Grid2"; // Grid version 2
+import { LinearProgress, Container, Box } from "@mui/material";
 
-import MenuItem from '@/models/MenuItem';
-import halls from '@/data/halls.json';
+import MenuItem from "@/models/MenuItem";
+import halls from "@/data/halls.json";
 
 const HomePage: React.FC = () => {
   const [date, setDate] = useState(dayjs());
@@ -16,18 +17,18 @@ const HomePage: React.FC = () => {
   const [meal, setMeal] = useState(meals[0].id);
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
 
-  const handleDateChange = (date: dayjs.Dayjs | null) => {
-    if (date) {
-      setDate(date);
+  const handleDateChange = (newDate: dayjs.Dayjs | null) => {
+    if (newDate) {
+      setDate(newDate);
     } else {
       setDate(dayjs());
     }
   };
 
   useEffect(() => {
-    const hall = halls.find((hall) => hall.id === place);
+    const hall = halls.find((_hall) => _hall.id === place);
     if (hall) {
-      const options = hall.options;
+      const { options } = hall;
       if (options.filter((option) => option.id === meal).length === 0) {
         setMeal(options[0].id);
       }
@@ -38,14 +39,9 @@ const HomePage: React.FC = () => {
     }
   }, [place, meal]);
 
-  const onPlaceChange = (place: string) => {
-    setPlace(place);
-
-  };
-
-  const fetchMenuItems = async (date: dayjs.Dayjs, place: string, meal: string) => {
+  const fetchMenuItems = async (dateObject: dayjs.Dayjs, placeStr: string, mealStr: string) => {
     try {
-      const url = `/api/menu?dateStr=${date.format('YYYY-MM-DD')}&place=${place}&meal=${meal}`
+      const url = `/api/menu?dateStr=${dateObject.format("YYYY-MM-DD")}&place=${placeStr}&meal=${mealStr}`;
       const response = await fetch(url);
       if (!response.ok) {
         throw new Error(response.statusText);
@@ -64,17 +60,27 @@ const HomePage: React.FC = () => {
 
   return (
     <>
-    <Stack
-    direction={{ xs: 'column', lg: 'row' }}
-      spacing={2}
-      justifyContent="flex-start"
-      alignItems="center"
-    >
+    <Grid container spacing={2}>
+      <Grid xs={12} lg={6} display="flex" justifyContent="center" alignItems="center">
+        <PlaceSelector place={place} onPlaceChange={setPlace} />
+      </Grid>
+      <Grid xs={12} sm={6} lg={2} display="flex" justifyContent="center" alignItems="center">
         <DateSelector date={date} onDateChange={handleDateChange} />
-        <PlaceSelector place={place} onPlaceChange={onPlaceChange} />
+      </Grid>
+      
+      <Grid xs={12} sm={6} lg={4} display="flex" justifyContent="center" alignItems="center">
         <MealSelector meal={meal} meals={meals} setMeal={setMeal} />
-    </Stack>
-    {menuItems.length > 0 ? <MenuItems items={menuItems} /> : <LinearProgress />}
+      </Grid>
+    </Grid>
+    <Container maxWidth="lg">
+    {
+    menuItems.length > 0 ? <MenuItems items={menuItems} /> : <>
+    <Box mt={5}>
+    <LinearProgress />
+    </Box>
+    </>
+    }
+    </Container>
     </>
     
   );

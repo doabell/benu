@@ -1,21 +1,21 @@
-import React from 'react';
-import Head from 'next/head';
-import type { AppProps } from 'next/app';
+import React from "react";
+import Head from "next/head";
+import type { AppProps } from "next/app";
 
 import { ThemeProvider } from "@mui/material/styles";
-import { CacheProvider, EmotionCache } from '@emotion/react';
+import { CacheProvider, EmotionCache } from "@emotion/react";
 import theme from "../material/theme";
 import createEmotionCache from "../material/createEmotionCache";
-import { Box, CssBaseline, Container, Typography, Link } from '@mui/material';
+import { Box, CssBaseline, Container, Typography, Link } from "@mui/material";
 
 function Copyright(props: any) {
   return (
     <Typography variant="body2" color="text.secondary" align="center" {...props}>
-      {'We\'re no '}
+      {"We're no "}
       <Link color="inherit" href="https://www.youtube.com/watch?v=doEqUhFiQS4">
         strangers to love
       </Link>
-      {'.'}
+      {"."}
     </Typography>
   );
 }
@@ -43,17 +43,18 @@ export default function MyApp(props: MyAppProps) {
           <header>
             <Box
               sx={{
-                marginTop: 8,
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
+                marginTop: 2,
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                marginBottom: 2,
               }}
             >
               <Typography component="h1" variant="h2" align="center">Benu</Typography>
-              <Typography component="p" className='tagline' align="center">Menu, but better</Typography>
+              <Typography component="p" className="tagline" align="center">Menu, but better</Typography>
             </Box>
           </header>
-          <Container>
+          <Container maxWidth="xl">
             <Component {...pageProps} />
           </Container>
         </main>
