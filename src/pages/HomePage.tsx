@@ -4,8 +4,11 @@ import DateSelector from "../components/DateSelector";
 import MealSelector from "../components/MealSelector";
 import PlaceSelector from "../components/PlaceSelector";
 import MenuItems from "../components/MenuItems";
+
 import Grid from "@mui/material/Unstable_Grid2"; // Grid version 2
 import { LinearProgress, Container, Box } from "@mui/material";
+import { LocalizationProvider } from "@mui/x-date-pickers";
+import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 
 import MenuItem from "@/models/MenuItem";
 import halls from "@/data/halls.json";
@@ -59,7 +62,7 @@ const HomePage: React.FC = () => {
   
 
   return (
-    <>
+    <LocalizationProvider dateAdapter={AdapterDayjs}>
     <Grid container spacing={2}>
       <Grid xs={12} lg={6} display="flex" justifyContent="center" alignItems="center">
         <PlaceSelector place={place} onPlaceChange={setPlace} />
@@ -81,7 +84,7 @@ const HomePage: React.FC = () => {
     </>
     }
     </Container>
-    </>
+    </LocalizationProvider>
     
   );
 };

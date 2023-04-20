@@ -1,4 +1,5 @@
 import { NextApiRequest, NextApiResponse } from "next";
+import fetch from "node-fetch-cache";
 import MenuItem from "@/models/MenuItem";
 import ApiResponse from "@/models/ApiResponse";
 
@@ -26,6 +27,7 @@ export default async function handler(
   const response = await fetch(url);
 
   if (!response.ok) {
+    await response.ejectFromCache();
     throw new Error(response.statusText);
   }
 
@@ -60,5 +62,6 @@ export default async function handler(
 
   transformedItems.sort((item1, item2) => item1.position - item2.position);
 
+  res.setHeader("Cache-Control", "s-maxage=864000, immutable");
   res.status(200).json(transformedItems);
 }
