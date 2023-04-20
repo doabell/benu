@@ -8,12 +8,13 @@ interface PlaceSelectorProps {
   onPlaceChange: (place: string) => void;
 }
 
-const PlaceSelector: React.FC<PlaceSelectorProps> = ({ place, onPlaceChange }) => {
+const PlaceSelector: React.FC<PlaceSelectorProps> = ({
+  place,
+  onPlaceChange,
+}) => {
   const changePlace = (_event: React.SyntheticEvent, newPlace: string) => {
     onPlaceChange(newPlace);
   };
-
-  
 
   const placeTabs = halls.map(({ id, name }) => (
     <Tab key={id} label={name} value={id} />
@@ -30,12 +31,10 @@ const PlaceSelector: React.FC<PlaceSelectorProps> = ({ place, onPlaceChange }) =
       >
         {placeTabs}
       </Tabs>
-  );
+    );
   } else {
     return <></>;
   }
-
-  
 };
 
 export default PlaceSelector;

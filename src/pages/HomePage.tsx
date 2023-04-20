@@ -18,12 +18,18 @@ import halls from "@/data/halls.json";
 
 import { useLocalStorageValue } from "@react-hookz/web";
 
-const HomePage: React.FC<{colorMode: ColorMode}> = ({ colorMode }) => {
+const HomePage: React.FC<{ colorMode: ColorMode }> = ({ colorMode }) => {
   const [date, setDate] = useState(dayjs());
-  const place = useLocalStorageValue("place", {defaultValue: halls[0].id, initializeWithValue: false});
+  const place = useLocalStorageValue("place", {
+    defaultValue: halls[0].id,
+    initializeWithValue: false,
+  });
   // const [place, setPlace] = useState(halls[0].id);
   const [meals, setMeals] = useState(halls[0].options);
-  const meal = useLocalStorageValue("meal", {defaultValue: meals[0].id, initializeWithValue: false});
+  const meal = useLocalStorageValue("meal", {
+    defaultValue: meals[0].id,
+    initializeWithValue: false,
+  });
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
 
   const handleDateChange = (newDate: dayjs.Dayjs | null) => {
@@ -41,9 +47,15 @@ const HomePage: React.FC<{colorMode: ColorMode}> = ({ colorMode }) => {
     }
   }, [place]);
 
-  const fetchMenuItems = async (dateObject: dayjs.Dayjs, placeStr: string, mealStr: string) => {
+  const fetchMenuItems = async (
+    dateObject: dayjs.Dayjs,
+    placeStr: string,
+    mealStr: string
+  ) => {
     try {
-      const url = `/api/menu?dateStr=${dateObject.format("YYYY-MM-DD")}&place=${placeStr}&meal=${mealStr}`;
+      const url = `/api/menu?dateStr=${dateObject.format(
+        "YYYY-MM-DD"
+      )}&place=${placeStr}&meal=${mealStr}`;
       const response = await fetch(url);
       if (!response.ok) {
         throw new Error(response.statusText);
@@ -54,7 +66,7 @@ const HomePage: React.FC<{colorMode: ColorMode}> = ({ colorMode }) => {
       // Handle errors
     }
   };
-  
+
   useEffect(() => {
     const hall = halls.find((_hall) => _hall.id === place.value);
     if (hall && place.value && meal.value) {
@@ -66,46 +78,68 @@ const HomePage: React.FC<{colorMode: ColorMode}> = ({ colorMode }) => {
       }
     }
   }, [date, place, meal]);
-  
 
   return (
     <LocalizationProvider dateAdapter={AdapterDayjs}>
-    <Grid container spacing={2}>
-      <Grid xs={12} lg={6} display="flex" justifyContent="center" alignItems="center">
-        <PlaceSelector place={place.value} onPlaceChange={place.set} />
+      <Grid container spacing={2}>
+        <Grid
+          xs={12}
+          lg={6}
+          display="flex"
+          justifyContent="center"
+          alignItems="center"
+        >
+          <PlaceSelector place={place.value} onPlaceChange={place.set} />
+        </Grid>
+        <Grid
+          xs={12}
+          sm={6}
+          lg={2}
+          display="flex"
+          justifyContent="center"
+          alignItems="center"
+        >
+          <DateSelector date={date} onDateChange={handleDateChange} />
+        </Grid>
+
+        <Grid
+          xs={12}
+          sm={6}
+          lg={4}
+          display="flex"
+          justifyContent="center"
+          alignItems="center"
+        >
+          <MealSelector meal={meal.value} meals={meals} setMeal={meal.set} />
+        </Grid>
       </Grid>
-      <Grid xs={12} sm={6} lg={2} display="flex" justifyContent="center" alignItems="center">
-        <DateSelector date={date} onDateChange={handleDateChange} />
-      </Grid>
-      
-      <Grid xs={12} sm={6} lg={4} display="flex" justifyContent="center" alignItems="center">
-        <MealSelector meal={meal.value} meals={meals} setMeal={meal.set} />
-      </Grid>
-    </Grid>
-    <Container maxWidth="lg">
-    {
-    menuItems.length > 0 ? <MenuItems items={menuItems} /> : <>
-    <Box mt={5}>
-    <LinearProgress />
-    </Box>
-    </>
-    }
-    </Container>
-    <Fab
-      color="primary"
-      aria-label="toggle dark mode"
-      sx={{
-        position: "fixed",
-        bottom: useTheme().spacing(4),
-        right: useTheme().spacing(4),
-      }}
-    >
-      {useTheme().palette.mode === "dark" ? 
-      <LightModeIcon onClick={colorMode.toggleColorMode}/> : 
-      <DarkModeIcon onClick={colorMode.toggleColorMode}/>}
-    </Fab>
+      <Container maxWidth="lg">
+        {menuItems.length > 0 ? (
+          <MenuItems items={menuItems} />
+        ) : (
+          <>
+            <Box mt={5}>
+              <LinearProgress />
+            </Box>
+          </>
+        )}
+      </Container>
+      <Fab
+        color="primary"
+        aria-label="toggle dark mode"
+        sx={{
+          position: "fixed",
+          bottom: useTheme().spacing(4),
+          right: useTheme().spacing(4),
+        }}
+      >
+        {useTheme().palette.mode === "dark" ? (
+          <LightModeIcon onClick={colorMode.toggleColorMode} />
+        ) : (
+          <DarkModeIcon onClick={colorMode.toggleColorMode} />
+        )}
+      </Fab>
     </LocalizationProvider>
-    
   );
 };
 

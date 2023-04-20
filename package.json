@@ -27,6 +27,10 @@
     "react": "18.2.0",
     "react-dom": "18.2.0"
   },
+  "lint-staged": {
+    "*.{js,ts}": "eslint --cache --fix",
+    "*.{js,css,md,json,jsx,ts,tsx}": "prettier --write"
+  },
   "devDependencies": {
     "@types/node-fetch-cache": "^3.0.0",
     "@typescript-eslint/eslint-plugin": "^5.59.0",
@@ -34,6 +38,9 @@
     "eslint": "^8.38.0",
     "eslint-config-airbnb-typescript": "^17.0.0",
     "eslint-config-prettier": "^8.8.0",
+    "husky": "^8.0.3",
+    "lint-staged": "^13.2.1",
+    "prettier": "^2.8.7",
     "typescript": "^5.0.4"
   }
 }

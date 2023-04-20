@@ -6,20 +6,14 @@ import { createTheme, ThemeProvider } from "@mui/material/styles";
 import { CacheProvider, EmotionCache } from "@emotion/react";
 import roboto from "../material/theme";
 import createEmotionCache from "../material/createEmotionCache";
-import { Box, CssBaseline, Container, Typography, Link, useMediaQuery } from "@mui/material";
-
-function Copyright(props: any) {
-  return (
-    <Typography variant="body2" color="text.secondary" align="center" {...props}>
-      {"We're no "}
-      <Link color="inherit" href="https://www.youtube.com/watch?v=doEqUhFiQS4">
-        strangers to love
-      </Link>
-      {"."}
-    </Typography>
-  );
-}
-
+import {
+  Box,
+  CssBaseline,
+  Container,
+  Typography,
+  useMediaQuery,
+} from "@mui/material";
+import { Copyright } from "../components/Copyright";
 
 // Client-side cache, shared for the whole session of the user in the browser.
 const clientSideEmotionCache = createEmotionCache();
@@ -27,7 +21,6 @@ const clientSideEmotionCache = createEmotionCache();
 export interface MyAppProps extends AppProps {
   emotionCache?: EmotionCache;
 }
-
 
 export default function MyApp(props: MyAppProps) {
   const { Component, emotionCache = clientSideEmotionCache, pageProps } = props;
@@ -39,11 +32,11 @@ export default function MyApp(props: MyAppProps) {
         setMode((prevMode) => (prevMode === "light" ? "dark" : "light"));
       },
     }),
-    [],
+    []
   );
 
   useEffect(() => {
-    setMode(prefersDarkMode? "dark" : "light");
+    setMode(prefersDarkMode ? "dark" : "light");
   }, [prefersDarkMode]);
 
   const theme = React.useMemo(
@@ -56,7 +49,7 @@ export default function MyApp(props: MyAppProps) {
           fontFamily: roboto.style.fontFamily,
         },
       }),
-    [mode],
+    [mode]
   );
   return (
     <CacheProvider value={emotionCache}>
@@ -78,8 +71,12 @@ export default function MyApp(props: MyAppProps) {
                 marginBottom: 2,
               }}
             >
-              <Typography component="h1" variant="h2" align="center">Benu</Typography>
-              <Typography component="p" className="tagline" align="center">Menu, but better</Typography>
+              <Typography component="h1" variant="h2" align="center">
+                Benu
+              </Typography>
+              <Typography component="p" className="tagline" align="center">
+                Menu, but better
+              </Typography>
             </Box>
           </header>
           <Container maxWidth="xl">

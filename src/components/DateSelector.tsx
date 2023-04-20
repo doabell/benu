@@ -11,12 +11,12 @@ interface DateSelectorProps {
 }
 
 const DateSelector: React.FC<DateSelectorProps> = ({ date, onDateChange }) => {
-  const lastDay = (() => {
+  const lastDay = () => {
     onDateChange(date.subtract(1, "day"));
-  });
-  const nextDay = (() => {
+  };
+  const nextDay = () => {
     onDateChange(date.add(1, "day"));
-  });
+  };
   return (
     <Stack
       direction="row"
@@ -24,17 +24,13 @@ const DateSelector: React.FC<DateSelectorProps> = ({ date, onDateChange }) => {
       justifyContent="center"
       alignItems="center"
     >
-    <IconButton aria-label="last day" onClick={lastDay} size="small">
-      <ArrowBackIosIcon />
-    </IconButton>
-    <DatePicker
-      label="Date"
-      value={date}
-      onChange={onDateChange}
-    />
-    <IconButton aria-label="next day" onClick={nextDay} size="small">
-      <ArrowForwardIosIcon />
-    </IconButton>
+      <IconButton aria-label="last day" onClick={lastDay} size="small">
+        <ArrowBackIosIcon />
+      </IconButton>
+      <DatePicker label="Date" value={date} onChange={onDateChange} />
+      <IconButton aria-label="next day" onClick={nextDay} size="small">
+        <ArrowForwardIosIcon />
+      </IconButton>
     </Stack>
   );
 };
