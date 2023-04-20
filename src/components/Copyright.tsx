@@ -18,13 +18,7 @@ export function Copyright(props: any) {
           strangers to love
         </Link>
         {"."}
-      </Typography>
-      <Typography
-        variant="body2"
-        color="text.secondary"
-        align="center"
-        {...props}
-      >
+        <br />
         <Link
           color="inherit"
           href="https://middlebury.api.nutrislice.com/terms-of-use"

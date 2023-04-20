@@ -6,9 +6,10 @@ import PlaceSelector from "../components/PlaceSelector";
 import MenuItems from "../components/MenuItems";
 
 import Grid from "@mui/material/Unstable_Grid2"; // Grid version 2
-import { LinearProgress, Container, Box, Fab, useTheme } from "@mui/material";
+import { LinearProgress, Container, Box, Stack, Fab, useTheme } from "@mui/material";
 import LightModeIcon from "@mui/icons-material/LightMode";
 import DarkModeIcon from "@mui/icons-material/DarkMode";
+import TodayIcon from "@mui/icons-material/Today";
 import { LocalizationProvider } from "@mui/x-date-pickers";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 
@@ -19,12 +20,24 @@ import halls from "@/data/halls.json";
 import { useLocalStorageValue } from "@react-hookz/web";
 
 const HomePage: React.FC<{ colorMode: ColorMode }> = ({ colorMode }) => {
-  const [date, setDate] = useState(dayjs());
+  const [date, setDate] = useState<dayjs.Dayjs>();
+  const dateStore = useLocalStorageValue("date", {
+    defaultValue: dayjs(),
+  });
+
+  useEffect(() => {
+    const storedDay = dayjs(dateStore.value);
+    if (date) {
+      dateStore.set(date);
+    } else {
+      setDate(storedDay);
+    }
+  }, [dateStore, date]);
+
   const place = useLocalStorageValue("place", {
     defaultValue: halls[0].id,
     initializeWithValue: false,
   });
-  // const [place, setPlace] = useState(halls[0].id);
   const [meals, setMeals] = useState(halls[0].options);
   const meal = useLocalStorageValue("meal", {
     defaultValue: meals[0].id,
@@ -69,7 +82,7 @@ const HomePage: React.FC<{ colorMode: ColorMode }> = ({ colorMode }) => {
 
   useEffect(() => {
     const hall = halls.find((_hall) => _hall.id === place.value);
-    if (hall && place.value && meal.value) {
+    if (hall && date && place.value && meal.value) {
       const { options } = hall;
       if (options.filter((option) => option.id === meal.value).length !== 0) {
         fetchMenuItems(date, place.value, meal.value);
@@ -99,7 +112,7 @@ const HomePage: React.FC<{ colorMode: ColorMode }> = ({ colorMode }) => {
           justifyContent="center"
           alignItems="center"
         >
-          <DateSelector date={date} onDateChange={handleDateChange} />
+          <DateSelector date={date!} onDateChange={handleDateChange} />
         </Grid>
 
         <Grid
@@ -124,21 +137,39 @@ const HomePage: React.FC<{ colorMode: ColorMode }> = ({ colorMode }) => {
           </>
         )}
       </Container>
-      <Fab
-        color="primary"
-        aria-label="toggle dark mode"
-        sx={{
+      <Stack spacing={2}  
+      sx={{
           position: "fixed",
           bottom: useTheme().spacing(4),
           right: useTheme().spacing(4),
-        }}
+        }}>
+      {!dayjs().isSame(date, "day") &&
+      <Fab
+        variant="extended"
+        color="primary"
+        aria-label="back to today"
+      >
+        <TodayIcon sx={{ mr: 1 }} onClick={() => handleDateChange(dayjs())} />
+        Today
+      </Fab>}
+      <Fab
+        variant="extended"
+        color="primary"
+        aria-label="toggle dark mode"
       >
         {useTheme().palette.mode === "dark" ? (
-          <LightModeIcon onClick={colorMode.toggleColorMode} />
+          <>
+          <LightModeIcon sx={{ mr: 1 }} onClick={colorMode.toggleColorMode} />
+          Light
+          </>
         ) : (
-          <DarkModeIcon onClick={colorMode.toggleColorMode} />
+          <>
+          <DarkModeIcon sx={{ mr: 1 }}onClick={colorMode.toggleColorMode} />
+          Dark
+          </>
         )}
       </Fab>
+      </Stack>
     </LocalizationProvider>
   );
 };

@@ -71,7 +71,7 @@ export default function MyApp(props: MyAppProps) {
                 marginBottom: 2,
               }}
             >
-              <Typography component="h1" variant="h2" align="center">
+              <Typography component="h1" variant="h3" align="center">
                 Benu
               </Typography>
               <Typography component="p" className="tagline" align="center">
