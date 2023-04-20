@@ -20,7 +20,7 @@ const MealSelector: React.FC<MealSelectorProps> = ({
     <Tab key={id} label={name} value={id} />
   ));
 
-  if (meal) {
+  if (meals.filter((option) => option.id === meal).length !== 0) {
     return (
       <Tabs
         value={meal}
