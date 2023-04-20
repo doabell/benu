@@ -4,7 +4,7 @@ import { Tab, Tabs } from "@mui/material";
 import halls from "@/data/halls.json";
 
 interface PlaceSelectorProps {
-  place: string;
+  place?: string;
   onPlaceChange: (place: string) => void;
 }
 
@@ -13,11 +13,14 @@ const PlaceSelector: React.FC<PlaceSelectorProps> = ({ place, onPlaceChange }) =
     onPlaceChange(newPlace);
   };
 
+  
+
   const placeTabs = halls.map(({ id, name }) => (
     <Tab key={id} label={name} value={id} />
   ));
 
-  return (
+  if (place) {
+    return (
       <Tabs
         value={place}
         onChange={changePlace}
@@ -28,6 +31,11 @@ const PlaceSelector: React.FC<PlaceSelectorProps> = ({ place, onPlaceChange }) =
         {placeTabs}
       </Tabs>
   );
+  } else {
+    return <></>;
+  }
+
+  
 };
 
 export default PlaceSelector;

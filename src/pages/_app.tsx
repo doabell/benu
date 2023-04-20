@@ -1,12 +1,12 @@
-import React from "react";
+import React, { useEffect } from "react";
 import Head from "next/head";
 import type { AppProps } from "next/app";
 
-import { ThemeProvider } from "@mui/material/styles";
+import { createTheme, ThemeProvider } from "@mui/material/styles";
 import { CacheProvider, EmotionCache } from "@emotion/react";
-import theme from "../material/theme";
+import roboto from "../material/theme";
 import createEmotionCache from "../material/createEmotionCache";
-import { Box, CssBaseline, Container, Typography, Link } from "@mui/material";
+import { Box, CssBaseline, Container, Typography, Link, useMediaQuery } from "@mui/material";
 
 function Copyright(props: any) {
   return (
@@ -31,6 +31,33 @@ export interface MyAppProps extends AppProps {
 
 export default function MyApp(props: MyAppProps) {
   const { Component, emotionCache = clientSideEmotionCache, pageProps } = props;
+  const prefersDarkMode = useMediaQuery("(prefers-color-scheme: dark)");
+  const [mode, setMode] = React.useState<"light" | "dark">("light");
+  const colorMode = React.useMemo(
+    () => ({
+      toggleColorMode: () => {
+        setMode((prevMode) => (prevMode === "light" ? "dark" : "light"));
+      },
+    }),
+    [],
+  );
+
+  useEffect(() => {
+    setMode(prefersDarkMode? "dark" : "light");
+  }, [prefersDarkMode]);
+
+  const theme = React.useMemo(
+    () =>
+      createTheme({
+        palette: {
+          mode,
+        },
+        typography: {
+          fontFamily: roboto.style.fontFamily,
+        },
+      }),
+    [mode],
+  );
   return (
     <CacheProvider value={emotionCache}>
       <Head>
@@ -56,7 +83,7 @@ export default function MyApp(props: MyAppProps) {
             </Box>
           </header>
           <Container maxWidth="xl">
-            <Component {...pageProps} />
+            <Component {...pageProps} colorMode={colorMode} />
           </Container>
         </main>
         <Copyright sx={{ mt: 8, mb: 4 }} />

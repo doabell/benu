@@ -62,6 +62,12 @@ export default async function handler(
 
   transformedItems.sort((item1, item2) => item1.position - item2.position);
 
-  res.setHeader("Cache-Control", "s-maxage=864000, immutable");
-  res.status(200).json(transformedItems);
+  res.setHeader("Cache-Control", "s-maxage=100000, immutable");
+  if (transformedItems.length === 0) {
+    res.status(200).json([{"id":60000000,"position":0,"is_title":true,"name":"No data. Not open?"}]);
+  } else {
+    res.status(200).json(transformedItems);
+  }
+
+  
 }

@@ -2,7 +2,7 @@ import React from "react";
 import { Tab, Tabs } from "@mui/material";
 
 interface MealSelectorProps {
-  meal: string;
+  meal?: string;
   meals: { id: string; name:string; }[];
   setMeal: (meal: string) => void;
 }
@@ -16,10 +16,8 @@ const MealSelector: React.FC<MealSelectorProps> = ({ meal, meals, setMeal }) => 
     <Tab key={id} label={name} value={id} />
   ));
   
-  if (mealTabs.length === 1) {
-    // setMeal(meals[0].id);
-    return <></>;
-  } else {
+  
+  if (meal) {
     return (
       <Tabs
         value={meal}
@@ -31,7 +29,11 @@ const MealSelector: React.FC<MealSelectorProps> = ({ meal, meals, setMeal }) => 
         {mealTabs}
       </Tabs>
     );
+  } else {
+    return <></>;
   }
+  
+
 
   
 };

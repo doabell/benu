@@ -6,18 +6,24 @@ import PlaceSelector from "../components/PlaceSelector";
 import MenuItems from "../components/MenuItems";
 
 import Grid from "@mui/material/Unstable_Grid2"; // Grid version 2
-import { LinearProgress, Container, Box } from "@mui/material";
+import { LinearProgress, Container, Box, Fab, useTheme } from "@mui/material";
+import LightModeIcon from "@mui/icons-material/LightMode";
+import DarkModeIcon from "@mui/icons-material/DarkMode";
 import { LocalizationProvider } from "@mui/x-date-pickers";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 
 import MenuItem from "@/models/MenuItem";
+import ColorMode from "@/models/ColorMode";
 import halls from "@/data/halls.json";
 
-const HomePage: React.FC = () => {
+import { useLocalStorageValue } from "@react-hookz/web";
+
+const HomePage: React.FC<{colorMode: ColorMode}> = ({ colorMode }) => {
   const [date, setDate] = useState(dayjs());
-  const [place, setPlace] = useState(halls[0].id);
+  const place = useLocalStorageValue("place", {defaultValue: halls[0].id, initializeWithValue: false});
+  // const [place, setPlace] = useState(halls[0].id);
   const [meals, setMeals] = useState(halls[0].options);
-  const [meal, setMeal] = useState(meals[0].id);
+  const meal = useLocalStorageValue("meal", {defaultValue: meals[0].id, initializeWithValue: false});
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
 
   const handleDateChange = (newDate: dayjs.Dayjs | null) => {
@@ -29,18 +35,11 @@ const HomePage: React.FC = () => {
   };
 
   useEffect(() => {
-    const hall = halls.find((_hall) => _hall.id === place);
+    const hall = halls.find((_hall) => _hall.id === place.value);
     if (hall) {
-      const { options } = hall;
-      if (options.filter((option) => option.id === meal).length === 0) {
-        setMeal(options[0].id);
-      }
-      setMeals(options);
-
-    } else {
-      throw new Error("No dining hall!");
+      setMeals(hall.options);
     }
-  }, [place, meal]);
+  }, [place]);
 
   const fetchMenuItems = async (dateObject: dayjs.Dayjs, placeStr: string, mealStr: string) => {
     try {
@@ -57,7 +56,15 @@ const HomePage: React.FC = () => {
   };
   
   useEffect(() => {
-    fetchMenuItems(date, place, meal);
+    const hall = halls.find((_hall) => _hall.id === place.value);
+    if (hall && place.value && meal.value) {
+      const { options } = hall;
+      if (options.filter((option) => option.id === meal.value).length !== 0) {
+        fetchMenuItems(date, place.value, meal.value);
+      } else {
+        meal.set(options[0].id);
+      }
+    }
   }, [date, place, meal]);
   
 
@@ -65,14 +72,14 @@ const HomePage: React.FC = () => {
     <LocalizationProvider dateAdapter={AdapterDayjs}>
     <Grid container spacing={2}>
       <Grid xs={12} lg={6} display="flex" justifyContent="center" alignItems="center">
-        <PlaceSelector place={place} onPlaceChange={setPlace} />
+        <PlaceSelector place={place.value} onPlaceChange={place.set} />
       </Grid>
       <Grid xs={12} sm={6} lg={2} display="flex" justifyContent="center" alignItems="center">
         <DateSelector date={date} onDateChange={handleDateChange} />
       </Grid>
       
       <Grid xs={12} sm={6} lg={4} display="flex" justifyContent="center" alignItems="center">
-        <MealSelector meal={meal} meals={meals} setMeal={setMeal} />
+        <MealSelector meal={meal.value} meals={meals} setMeal={meal.set} />
       </Grid>
     </Grid>
     <Container maxWidth="lg">
@@ -84,6 +91,19 @@ const HomePage: React.FC = () => {
     </>
     }
     </Container>
+    <Fab
+      color="primary"
+      aria-label="toggle dark mode"
+      sx={{
+        position: "fixed",
+        bottom: useTheme().spacing(4),
+        right: useTheme().spacing(4),
+      }}
+    >
+      {useTheme().palette.mode === "dark" ? 
+      <LightModeIcon onClick={colorMode.toggleColorMode}/> : 
+      <DarkModeIcon onClick={colorMode.toggleColorMode}/>}
+    </Fab>
     </LocalizationProvider>
     
   );
