@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "prepare": "husky install"
   },
   "dependencies": {
     "@emotion/cache": "^11.10.7",
@@ -29,7 +30,7 @@
   },
   "lint-staged": {
     "*.{js,ts}": "eslint --cache --fix",
-    "*.{js,css,md,json,jsx,ts,tsx}": "prettier --write"
+    "*.{js,css,md,json,jsx,ts,tsx}": "npx prettier -w"
   },
   "devDependencies": {
     "@types/node-fetch-cache": "^3.0.0",

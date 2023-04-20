@@ -6,7 +6,14 @@ import PlaceSelector from "../components/PlaceSelector";
 import MenuItems from "../components/MenuItems";
 
 import Grid from "@mui/material/Unstable_Grid2"; // Grid version 2
-import { LinearProgress, Container, Box, Stack, Fab, useTheme } from "@mui/material";
+import {
+  LinearProgress,
+  Container,
+  Box,
+  Stack,
+  Fab,
+  useTheme,
+} from "@mui/material";
 import LightModeIcon from "@mui/icons-material/LightMode";
 import DarkModeIcon from "@mui/icons-material/DarkMode";
 import TodayIcon from "@mui/icons-material/Today";
@@ -137,38 +144,42 @@ const HomePage: React.FC<{ colorMode: ColorMode }> = ({ colorMode }) => {
           </>
         )}
       </Container>
-      <Stack spacing={2}  
-      sx={{
+      <Stack
+        spacing={2}
+        sx={{
           position: "fixed",
           bottom: useTheme().spacing(4),
           right: useTheme().spacing(4),
-        }}>
-      {!dayjs().isSame(date, "day") &&
-      <Fab
-        variant="extended"
-        color="primary"
-        aria-label="back to today"
+        }}
       >
-        <TodayIcon sx={{ mr: 1 }} onClick={() => handleDateChange(dayjs())} />
-        Today
-      </Fab>}
-      <Fab
-        variant="extended"
-        color="primary"
-        aria-label="toggle dark mode"
-      >
-        {useTheme().palette.mode === "dark" ? (
-          <>
-          <LightModeIcon sx={{ mr: 1 }} onClick={colorMode.toggleColorMode} />
-          Light
-          </>
-        ) : (
-          <>
-          <DarkModeIcon sx={{ mr: 1 }}onClick={colorMode.toggleColorMode} />
-          Dark
-          </>
+        {!dayjs().isSame(date, "day") && (
+          <Fab variant="extended" color="primary" aria-label="back to today">
+            <TodayIcon
+              sx={{ mr: 1 }}
+              onClick={() => handleDateChange(dayjs())}
+            />
+            Today
+          </Fab>
         )}
-      </Fab>
+        <Fab variant="extended" color="primary" aria-label="toggle dark mode">
+          {useTheme().palette.mode === "dark" ? (
+            <>
+              <LightModeIcon
+                sx={{ mr: 1 }}
+                onClick={colorMode.toggleColorMode}
+              />
+              Light
+            </>
+          ) : (
+            <>
+              <DarkModeIcon
+                sx={{ mr: 1 }}
+                onClick={colorMode.toggleColorMode}
+              />
+              Dark
+            </>
+          )}
+        </Fab>
       </Stack>
     </LocalizationProvider>
   );
