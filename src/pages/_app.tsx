@@ -26,6 +26,14 @@ export default function MyApp(props: MyAppProps) {
   const { Component, emotionCache = clientSideEmotionCache, pageProps } = props;
   const prefersDarkMode = useMediaQuery("(prefers-color-scheme: dark)");
   const [mode, setMode] = React.useState<"light" | "dark">("light");
+  const colorMode = React.useMemo(
+    () => ({
+      toggleColorMode: () => {
+        setMode((prevMode) => (prevMode === "light" ? "dark" : "light"));
+      },
+    }),
+    []
+  );
 
   useEffect(() => {
     setMode(prefersDarkMode ? "dark" : "light");
@@ -72,7 +80,7 @@ export default function MyApp(props: MyAppProps) {
             </Box>
           </header>
           <Container maxWidth="xl">
-            <Component {...pageProps} setMode={setMode} />
+            <Component {...pageProps} colorMode={colorMode} />
           </Container>
         </main>
         <Copyright sx={{ mt: 8, mb: 4 }} />
