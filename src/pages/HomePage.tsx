@@ -153,33 +153,37 @@ const HomePage: React.FC<{ colorMode: ColorMode }> = ({ colorMode }) => {
         }}
       >
         {!dayjs().isSame(date, "day") && (
-          <Fab variant="extended" color="primary" aria-label="back to today">
-            <TodayIcon
-              sx={{ mr: 1 }}
-              onClick={() => handleDateChange(dayjs())}
-            />
+          <Fab
+            variant="extended"
+            color="primary"
+            aria-label="back to today"
+            onClick={() => handleDateChange(dayjs())}
+          >
+            <TodayIcon sx={{ mr: 1 }} />
             Today
           </Fab>
         )}
-        <Fab variant="extended" color="primary" aria-label="toggle dark mode">
-          {useTheme().palette.mode === "dark" ? (
-            <>
-              <LightModeIcon
-                sx={{ mr: 1 }}
-                onClick={colorMode.toggleColorMode}
-              />
-              Light
-            </>
-          ) : (
-            <>
-              <DarkModeIcon
-                sx={{ mr: 1 }}
-                onClick={colorMode.toggleColorMode}
-              />
-              Dark
-            </>
-          )}
-        </Fab>
+        {useTheme().palette.mode === "dark" ? (
+          <Fab
+            variant="extended"
+            color="primary"
+            aria-label="toggle dark mode"
+            onClick={colorMode.toggleColorMode}
+          >
+            <LightModeIcon sx={{ mr: 1 }} />
+            Light
+          </Fab>
+        ) : (
+          <Fab
+            variant="extended"
+            color="primary"
+            aria-label="toggle dark mode"
+            onClick={colorMode.toggleColorMode}
+          >
+            <DarkModeIcon sx={{ mr: 1 }} />
+            Dark
+          </Fab>
+        )}
       </Stack>
     </LocalizationProvider>
   );
