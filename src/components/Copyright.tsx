@@ -13,7 +13,7 @@ export function Copyright(props: any) {
         {"We're no "}
         <Link
           color="inherit"
-          href="https://www.youtube.com/watch?v=doEqUhFiQS4"
+          href="https://www.youtube.com/watch?v=dQw4w9WgXcQ"
         >
           strangers to love
         </Link>
