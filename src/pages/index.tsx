@@ -1,8 +1,8 @@
 import HomePage from "../pages/HomePage";
-import ColorMode from "@/models/ColorMode";
+import React from "react";
 
-const IndexPage: React.FC<{ colorMode: ColorMode }> = ({ colorMode }) => {
-  return <HomePage colorMode={colorMode} />;
+const IndexPage: React.FC<{ setMode: React.Dispatch<React.SetStateAction<"light" | "dark">> }> = ({ setMode }) => {
+  return <HomePage setMode={setMode} />;
 };
 
 export default IndexPage;

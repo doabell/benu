@@ -27,7 +27,7 @@ const DateSelector: React.FC<DateSelectorProps> = ({ date, onDateChange }) => {
       <IconButton aria-label="last day" onClick={lastDay} size="small">
         <ArrowBackIosIcon />
       </IconButton>
-      <DatePicker label="Date" value={dayjs(date)} onChange={onDateChange} />
+      <DatePicker label="Date" value={date} onChange={onDateChange} />
       <IconButton aria-label="next day" onClick={nextDay} size="small">
         <ArrowForwardIosIcon />
       </IconButton>

@@ -21,25 +21,12 @@ import { LocalizationProvider } from "@mui/x-date-pickers";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 
 import MenuItem from "@/models/MenuItem";
-import ColorMode from "@/models/ColorMode";
 import halls from "@/data/halls.json";
 
 import { useLocalStorageValue } from "@react-hookz/web";
 
-const HomePage: React.FC<{ colorMode: ColorMode }> = ({ colorMode }) => {
-  const [date, setDate] = useState<dayjs.Dayjs>();
-  const dateStore = useLocalStorageValue("date", {
-    defaultValue: dayjs(),
-  });
-
-  useEffect(() => {
-    const storedDay = dayjs(dateStore.value);
-    if (date) {
-      dateStore.set(date);
-    } else {
-      setDate(storedDay);
-    }
-  }, [dateStore, date]);
+const HomePage: React.FC<{ setMode: React.Dispatch<React.SetStateAction<"light" | "dark">> }> = ({ setMode }) => {
+  const [date, setDate] = useState(dayjs());
 
   const place = useLocalStorageValue("place", {
     defaultValue: halls[0].id,
@@ -119,7 +106,7 @@ const HomePage: React.FC<{ colorMode: ColorMode }> = ({ colorMode }) => {
           justifyContent="center"
           alignItems="center"
         >
-          <DateSelector date={date!} onDateChange={handleDateChange} />
+          <DateSelector date={date} onDateChange={handleDateChange} />
         </Grid>
 
         <Grid
@@ -166,7 +153,7 @@ const HomePage: React.FC<{ colorMode: ColorMode }> = ({ colorMode }) => {
             <>
               <LightModeIcon
                 sx={{ mr: 1 }}
-                onClick={colorMode.toggleColorMode}
+                onClick={() => setMode("light")}
               />
               Light
             </>
@@ -174,7 +161,7 @@ const HomePage: React.FC<{ colorMode: ColorMode }> = ({ colorMode }) => {
             <>
               <DarkModeIcon
                 sx={{ mr: 1 }}
-                onClick={colorMode.toggleColorMode}
+                onClick={() => setMode("dark")}
               />
               Dark
             </>
