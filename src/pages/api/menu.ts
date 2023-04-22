@@ -33,7 +33,6 @@ export default async function handler(
   const response = await fetch(url);
 
   if (!response.ok) {
-    await response.ejectFromCache();
     throw new Error(response.statusText);
   }
 
