@@ -25,8 +25,11 @@ import ColorMode from "@/models/ColorMode";
 import halls from "@/data/halls.json";
 
 import { useLocalStorageValue } from "@react-hookz/web";
+import { trackPromise, usePromiseTracker } from "react-promise-tracker";
 
 const HomePage: React.FC<{ colorMode: ColorMode }> = ({ colorMode }) => {
+  const { promiseInProgress } = usePromiseTracker();
+
   const [date, setDate] = useState<dayjs.Dayjs>();
   const dateStore = useLocalStorageValue("date", {
     defaultValue: dayjs(),
@@ -83,7 +86,20 @@ const HomePage: React.FC<{ colorMode: ColorMode }> = ({ colorMode }) => {
       const data = await response.json();
       setMenuItems(data);
     } catch (error) {
-      // Handle errors
+      setMenuItems([
+        {
+          id: 60000000,
+          position: 0,
+          is_title: true,
+          name: "Error loading menu",
+        },
+        {
+          id: 60000001,
+          position: 1,
+          is_title: false,
+          name: "Check your Internet connection",
+        },
+      ]);
     }
   };
 
@@ -92,7 +108,7 @@ const HomePage: React.FC<{ colorMode: ColorMode }> = ({ colorMode }) => {
     if (hall && date && place.value && meal.value) {
       const { options } = hall;
       if (options.filter((option) => option.id === meal.value).length !== 0) {
-        fetchMenuItems(date, place.value, meal.value);
+        trackPromise(fetchMenuItems(date, place.value, meal.value));
       } else {
         meal.set(options[0].id);
       }
@@ -134,7 +150,7 @@ const HomePage: React.FC<{ colorMode: ColorMode }> = ({ colorMode }) => {
         </Grid>
       </Grid>
       <Container maxWidth="lg">
-        {menuItems.length > 0 ? (
+        {!promiseInProgress && menuItems.length > 0 ? (
           <MenuItems items={menuItems} />
         ) : (
           <>
