@@ -3,6 +3,7 @@ import Head from "next/head";
 import type { AppProps } from "next/app";
 
 import { createTheme, ThemeProvider } from "@mui/material/styles";
+import { PaletteMode } from "@mui/material";
 import { CacheProvider, EmotionCache } from "@emotion/react";
 import roboto from "../material/theme";
 import createEmotionCache from "../material/createEmotionCache";
@@ -15,6 +16,8 @@ import {
 } from "@mui/material";
 import { Copyright } from "../components/Copyright";
 
+import { useLocalStorageValue } from "@react-hookz/web";
+
 // Client-side cache, shared for the whole session of the user in the browser.
 const clientSideEmotionCache = createEmotionCache();
 
@@ -24,32 +27,32 @@ export interface MyAppProps extends AppProps {
 
 export default function MyApp(props: MyAppProps) {
   const { Component, emotionCache = clientSideEmotionCache, pageProps } = props;
+  
   const prefersDarkMode = useMediaQuery("(prefers-color-scheme: dark)");
-  const [mode, setMode] = React.useState<"light" | "dark">("light");
+  const dark = useLocalStorageValue("dark", {
+    defaultValue: prefersDarkMode ? "dark" : "light",
+    initializeWithValue: false,
+  });
   const colorMode = React.useMemo(
     () => ({
       toggleColorMode: () => {
-        setMode((prevMode) => (prevMode === "light" ? "dark" : "light"));
+        dark.set((prevMode) => (prevMode === "light" ? "dark" : "light"));
       },
     }),
-    []
+    [dark]
   );
-
-  useEffect(() => {
-    setMode(prefersDarkMode ? "dark" : "light");
-  }, [prefersDarkMode]);
 
   const theme = React.useMemo(
     () =>
       createTheme({
         palette: {
-          mode,
+          mode: dark.value as PaletteMode,
         },
         typography: {
           fontFamily: roboto.style.fontFamily,
         },
       }),
-    [mode]
+    [dark]
   );
   return (
     <CacheProvider value={emotionCache}>
