@@ -10,7 +10,8 @@ export function Copyright(props: any) {
         justifyContent="center"
         alignItems="center"
         spacing={2}
-        sx={{ my: 2 }}
+        mt={2}
+        mb={{ xs: 20, sm: 2}}
       >
         <IconButton
           aria-label="view on GitHub"

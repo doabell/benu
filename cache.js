@@ -136,15 +136,15 @@ const cache = [
       if (pathname.startsWith("/api/")) return true
       return false
     },
-    handler: "NetworkFirst",
+    handler: "CacheFirst",
     method: "GET",
     options: {
       cacheName: "apis",
       expiration: {
         maxEntries: 128,
-        maxAgeSeconds: 24 * 60 * 60 * 7 // a week
+        maxAgeSeconds: 24 * 60 * 60 * 2 // 2 days
       },
-      networkTimeoutSeconds: 10 // fall back to cache if api does not response within 10 seconds
+      // networkTimeoutSeconds: 10 // fall back to cache if api does not response within 10 seconds
     }
   },
   {
