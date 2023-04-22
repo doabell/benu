@@ -2,7 +2,7 @@ import React from "react";
 import { Typography, Link, IconButton, Stack } from "@mui/material";
 import GitHubIcon from "@mui/icons-material/GitHub";
 
-export function Copyright(props: any) {
+const Copyright: React.FC = () => {
   return (
     <>
       <Stack
@@ -11,7 +11,7 @@ export function Copyright(props: any) {
         alignItems="center"
         spacing={2}
         mt={2}
-        mb={{ xs: 20, sm: 2}}
+        mb={{ xs: 20, sm: 2 }}
       >
         <IconButton
           aria-label="view on GitHub"
@@ -19,12 +19,7 @@ export function Copyright(props: any) {
         >
           <GitHubIcon />
         </IconButton>
-        <Typography
-          variant="subtitle2"
-          color="text.secondary"
-          align="center"
-          {...props}
-        >
+        <Typography variant="subtitle2" color="text.secondary" align="center">
           {"We're no "}
           <Link
             color="inherit"
@@ -44,4 +39,6 @@ export function Copyright(props: any) {
       </Stack>
     </>
   );
-}
+};
+
+export default Copyright;

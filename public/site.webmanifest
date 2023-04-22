@@ -1,6 +1,8 @@
 {
     "name": "Benu",
     "short_name": "Benu",
+    "description": "Menu, but better",
+    "categories": ["food", "lifestyle", "utilities"],
     "icons": [
         {
             "src": "/android-chrome-192x192.png",
@@ -17,5 +19,6 @@
     "background_color": "#022543",
     "start_url": "/",
     "orientation": "portrait",
+    "lang": "en-US",
     "display": "standalone"
 }
