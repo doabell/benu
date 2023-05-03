@@ -10,6 +10,9 @@ public/worker-*.js
 /.pnp
 .pnp.js
 
+# eslint
+.eslintcache
+
 # testing
 /coverage
 
