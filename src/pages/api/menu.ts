@@ -22,14 +22,23 @@ export default async function handler(
     return res.status(400).end();
   }
 
-  const menu = await knex("menus")
-    .select()
-    .where({
-      place: place,
-      date: dateStr,
-      meal: meal,
-    })
-    .first();
+  const menu =
+    place === "wilson-cafe" || place === "the-grille"
+      ? await knex("menus")
+          .select()
+          .where({
+            place: place,
+            meal: meal,
+          })
+          .first()
+      : await knex("menus")
+          .select()
+          .where({
+            place: place,
+            date: dateStr,
+            meal: meal,
+          })
+          .first();
 
   if (menu) {
     res.status(200).send(menu.items);
