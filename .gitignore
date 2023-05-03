@@ -1,5 +1,8 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
+# dev db
+benu.db
+
 # Service workers
 public/workbox-*.js
 public/sw.js
@@ -9,6 +12,9 @@ public/worker-*.js
 /node_modules
 /.pnp
 .pnp.js
+
+# eslint
+.eslintcache
 
 # testing
 /coverage

@@ -23,16 +23,19 @@
     "@types/react-dom": "18.0.11",
     "dayjs": "^1.11.7",
     "eslint-config-next": "13.3.0",
+    "knex": "^2.4.2",
     "next": "13.3.0",
     "next-pwa": "^5.6.0",
     "node-fetch-cache": "^3.1.2",
+    "pg": "^8.10.0",
     "react": "18.2.0",
     "react-dom": "18.2.0",
-    "react-promise-tracker": "^2.1.1"
+    "react-promise-tracker": "^2.1.1",
+    "sqlite3": "^5.1.6"
   },
   "lint-staged": {
     "*.{js,ts}": "eslint --cache --fix",
-    "*.{js,css,md,json,jsx,ts,tsx}": "npx prettier -w"
+    "*.{js,css,md,json,jsx,ts,tsx}": "prettier --write"
   },
   "devDependencies": {
     "@types/node-fetch-cache": "^3.0.0",
@@ -41,7 +44,7 @@
     "eslint": "^8.38.0",
     "eslint-config-airbnb-typescript": "^17.0.0",
     "eslint-config-prettier": "^8.8.0",
-    "husky": "^8.0.3",
+    "husky": "^8.0.0",
     "lint-staged": "^13.2.1",
     "prettier": "^2.8.7",
     "typescript": "^5.0.4"
