@@ -1,7 +1,7 @@
 import { NextApiRequest, NextApiResponse } from "next";
-import fetch from "node-fetch-cache";
 import MenuItem from "@/models/MenuItem";
-import ApiResponse from "@/models/ApiResponse";
+import { knex } from "../../../knex/knex";
+import { fetchExternalMenu } from "@/utils/fetchExternalMenu";
 
 export default async function handler(
   req: NextApiRequest,
@@ -14,70 +14,27 @@ export default async function handler(
 
   const { dateStr, place, meal } = req.query;
 
-  if (typeof dateStr !== "string") {
+  if (
+    typeof dateStr !== "string" ||
+    typeof place !== "string" ||
+    typeof meal !== "string"
+  ) {
     return res.status(400).end();
   }
 
-  const [year, month, day] = dateStr.split("-");
+  const menu = await knex("menus")
+    .select()
+    .where({
+      place: place,
+      date: dateStr,
+      meal: meal,
+    })
+    .first();
 
-  const date = new Date(
-    parseInt(year, 10),
-    parseInt(month, 10) - 1,
-    parseInt(day, 10)
-  );
-
-  const url = `https://middlebury.api.nutrislice.com/menu/api/weeks/school/${place}/menu-type/${meal}/${year}/${month
-    .toString()
-    .padStart(2, "0")}/${day.toString().padStart(2, "0")}/?format=json`;
-
-  const response = await fetch(url);
-
-  if (!response.ok) {
-    throw new Error(response.statusText);
-  }
-
-  const data: ApiResponse = await response.json();
-
-  const items = data.days.find(
-    (daytoFind) => daytoFind.date === date.toISOString().substring(0, 10)
-  )?.menu_items;
-
-  if (!items) {
-    // if day is not found, return an empty array
-    res.status(200).json([]);
-    return;
-  }
-
-  const transformedItems = items.map((item) => {
-    if (item.is_section_title) {
-      const is_title = true;
-      const { id, position, text } = item;
-      return { id, position, is_title, name: text };
-    } else if (item.food) {
-      const is_title = false;
-      const { id, position } = item;
-      const { name, subtext, price } = item.food;
-      return { id, position, is_title, name, subtext, price };
-    } else {
-      const is_title = false;
-      const { id, position, text } = item;
-      return { id, position, is_title, name: text };
-    }
-  });
-
-  transformedItems.sort((item1, item2) => item1.position - item2.position);
-
-  res.setHeader("Cache-Control", "s-maxage=100000, immutable");
-  if (transformedItems.length === 0) {
-    res.status(200).json([
-      {
-        id: 60000000,
-        position: 0,
-        is_title: true,
-        name: "No data. Not open?",
-      },
-    ]);
+  if (menu) {
+    res.status(200).send(menu.items);
   } else {
-    res.status(200).json(transformedItems);
+    const items = await fetchExternalMenu(dateStr, place, meal);
+    res.status(200).json(items);
   }
 }
