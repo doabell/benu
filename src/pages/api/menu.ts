@@ -40,6 +40,7 @@ export default async function handler(
           })
           .first();
 
+  res.setHeader("Cache-Control", "s-maxage=432000"); // 5 days
   if (menu) {
     res.status(200).send(menu.items);
   } else {
