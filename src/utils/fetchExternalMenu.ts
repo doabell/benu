@@ -29,15 +29,19 @@ export const fetchExternalMenu = async (
 
   const data: ApiResponse = await response.json();
 
-  const items = data.days.find(
+  const day_data = data.days.find(
     (daytoFind) => daytoFind.date === date.toISOString().substring(0, 10)
-  )?.menu_items;
+  );
 
-  if (!items) {
+  const items = day_data?.menu_items;
+
+  if (!day_data || !Array.isArray(items) || !items.length) {
     return noData;
   }
 
-  const transformedItems = transformItems(items);
+  const menu_id = Number(Object.keys(day_data.menu_info)[0]);
+
+  const transformedItems = transformItems(items, menu_id);
 
   // Add to database
   const newItem = {
