@@ -76,7 +76,7 @@ const HomePage: React.FC<{ colorMode: ColorMode }> = ({ colorMode }) => {
     mealStr: string
   ) => {
     try {
-      const url = `/api/menus?dateStr=${dateObject.format(
+      const url = `/api/menu?dateStr=${dateObject.format(
         "YYYY-MM-DD"
       )}&place=${placeStr}&meal=${mealStr}`;
       const response = await fetch(url);
