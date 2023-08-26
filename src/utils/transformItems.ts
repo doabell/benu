@@ -22,7 +22,7 @@ export const transformItems = (items: ApiMenuItem[]) => {
 
   transformedItems.sort((item1, item2) => item1.position - item2.position);
 
-  const uniqueItems = Array.from(new Set(transformedItems.map(obj => obj.id))).map(id => transformedItems.find(obj => obj.id === id)!);
+  const uniqueItems = Array.from(new Set(transformedItems.map(obj => obj.name))).map(name => transformedItems.find(obj => obj.name === name)!);
 
   return uniqueItems;
 };
