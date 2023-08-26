@@ -35,7 +35,7 @@ export const fetchExternalMenu = async (
 
   const items = day_data?.menu_items;
 
-  if (!items) {
+  if (!day_data || !Array.isArray(items) || !items.length) {
     return noData;
   }
 
