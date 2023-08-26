@@ -1,6 +1,11 @@
 interface ApiResponse {
   days: {
     date: string;
+    menu_info: {
+      [key: string]: {
+        position: number;
+      }[];
+    };
     menu_items: {
       id: number;
       position: number;
@@ -12,6 +17,7 @@ interface ApiResponse {
         subtext?: string;
         price?: number;
       } | null;
+      menu_id: number;
     }[];
   }[];
 }
