@@ -3,11 +3,6 @@ import MenuItem from "@/models/MenuItem";
 import { knex } from "../../../knex/knex";
 import { fetchExternalMenu } from "@/utils/fetchExternalMenu";
 
-// https://vercel.com/docs/functions/edge-functions/quickstart
-export const config = {
-  runtime: "edge",
-};
-
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse<MenuItem[]>
