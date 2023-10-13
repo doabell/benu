@@ -2,6 +2,10 @@ import { NextApiRequest, NextApiResponse } from "next";
 import MenuItem from "@/models/MenuItem";
 import { fetchExternalMenu } from "@/utils/fetchExternalMenu";
 
+export const config = {
+  runtime: 'edge',
+};
+
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse<MenuItem[]>
