@@ -1,4 +1,4 @@
-import { NextApiRequest, NextApiResponse } from "next";
+import type { NextRequest } from 'next/server';
 import MenuItem from "@/models/MenuItem";
 import { fetchExternalMenu } from "@/utils/fetchExternalMenu";
 
@@ -6,28 +6,38 @@ export const config = {
   runtime: "edge",
 };
 
-export default async function handler(
-  req: NextApiRequest,
-  res: NextApiResponse<MenuItem[]>
-) {
-  if (!req.query || !req.query.dateStr || !req.query.place || !req.query.meal) {
-    // Return a 400 Bad Request response if any required params are missing
-    return res.status(400).end();
-  }
+export default async function handler(request: NextRequest) {
 
-  const { dateStr, place, meal } = req.query;
+  const { searchParams } = new URL(request.url);
+
+  const dateStr = searchParams.get("dateStr");
+  const place = searchParams.get("place");
+  const meal = searchParams.get("meal");
 
   if (
     typeof dateStr !== "string" ||
     typeof place !== "string" ||
     typeof meal !== "string"
   ) {
-    return res.status(400).end();
+    return new Response(
+      null,
+      {
+        status: 400, statusText: "Bad inputs"
+      },
+    );
   }
 
-  res.setHeader("Cache-Control", "s-maxage=432000"); // 5 days
-
   const items = await fetchExternalMenu(dateStr, place, meal);
-  res.status(200).json(items);
+
+  return new Response(
+    JSON.stringify(items),
+    {
+      status: 200,
+      headers: {
+        'Cache-Control': 's-maxage=432000', // 5 days
+        'Content-Type': 'application/json',
+      },
+    }
+  );
 
 }
