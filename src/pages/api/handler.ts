@@ -26,8 +26,7 @@ export default async function handler(request: NextRequest) {
     );
   }
 
-  // const items = await fetchExternalMenu(dateStr, place, meal);
-  const items = [dateStr, place, meal];
+  const items = await fetchExternalMenu(dateStr, place, meal);
 
   return new Response(
     JSON.stringify(items),

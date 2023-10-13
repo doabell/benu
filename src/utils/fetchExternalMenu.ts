@@ -1,4 +1,3 @@
-import fetch from "node-fetch-cache";
 import ApiResponse from "@/models/ApiResponse";
 import noData from "../data/noData.json";
 import { transformItems } from "./transformItems";
@@ -41,17 +40,6 @@ export const fetchExternalMenu = async (
   const menu_id = Number(Object.keys(day_data.menu_info)[0]);
 
   const transformedItems = transformItems(items, menu_id);
-
-  // Add to database
-  const newItem = {
-    place: place,
-    date: dateStr,
-    meal: meal,
-    items:
-      transformedItems.length === 0
-        ? JSON.stringify(noData)
-        : JSON.stringify(transformedItems),
-  };
 
   if (transformedItems.length === 0) {
     return noData;
