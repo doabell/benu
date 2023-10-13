@@ -1,4 +1,4 @@
-import type { NextRequest } from 'next/server';
+import type { NextRequest } from "next/server";
 import { fetchExternalMenu } from "@/utils/fetchExternalMenu";
 
 export const config = {
@@ -33,8 +33,8 @@ export default async function handler(request: NextRequest) {
     {
       status: 200,
       headers: {
-        'Cache-Control': 's-maxage=432000', // 5 days
-        'Content-Type': 'application/json',
+        "Cache-Control": "s-maxage=432000", // 5 days
+        "Content-Type": "application/json",
       },
     }
   );
