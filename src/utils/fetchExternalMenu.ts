@@ -1,6 +1,5 @@
 import fetch from "node-fetch-cache";
 import ApiResponse from "@/models/ApiResponse";
-import { knex } from "../../knex/knex";
 import noData from "../data/noData.json";
 import { transformItems } from "./transformItems";
 
@@ -53,8 +52,6 @@ export const fetchExternalMenu = async (
         ? JSON.stringify(noData)
         : JSON.stringify(transformedItems),
   };
-
-  await knex("menus").insert(newItem);
 
   if (transformedItems.length === 0) {
     return noData;
