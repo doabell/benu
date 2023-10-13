@@ -8,9 +8,6 @@ This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next
 
 Clone the repository and `npm ci` or `npm install`.
 
-
-Set `DATABASE_URL` as an environment variable in production.
-
 ## API Routes
 
 [Next.js API Routes](https://nextjs.org/docs/api-routes/introduction) are billed in Vercel as [Serverless Functions](https://vercel.com/docs/concepts/limits/usage#serverless-functions).
