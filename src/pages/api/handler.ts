@@ -33,7 +33,7 @@ export default async function handler(request: NextRequest) {
     {
       status: 200,
       headers: {
-        "Cache-Control": "s-maxage=432000", // 5 days
+        "Cache-Control": "public, max-age=86400, s-maxage=432000, stale-while-revalidate", // 1, 5 days
         "Content-Type": "application/json",
       },
     }
