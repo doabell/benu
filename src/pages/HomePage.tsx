@@ -30,7 +30,7 @@ import { trackPromise, usePromiseTracker } from "react-promise-tracker";
 const HomePage: React.FC<{ colorMode: ColorMode }> = ({ colorMode }) => {
   const { promiseInProgress } = usePromiseTracker();
 
-  const apiBase = process.env.API_BASE || "";
+  const apiBase = process.env.API_BASE || "/api/handler";
 
   const [date, setDate] = useState<dayjs.Dayjs>();
   const dateStore = useLocalStorageValue("date", {
@@ -78,7 +78,7 @@ const HomePage: React.FC<{ colorMode: ColorMode }> = ({ colorMode }) => {
     mealStr: string
   ) => {
     try {
-      const url = `${apiBase}/api/menu?dateStr=${dateObject.format(
+      const url = `${apiBase}?dateStr=${dateObject.format(
         "YYYY-MM-DD"
       )}&place=${placeStr}&meal=${mealStr}`;
       const response = await fetch(url);
