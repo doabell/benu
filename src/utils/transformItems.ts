@@ -2,8 +2,8 @@ import ApiResponse from "@/models/ApiResponse";
 
 type ApiMenuItem = ApiResponse["days"][0]["menu_items"][0];
 
-export const transformItems = (items: ApiMenuItem[], menu_id: number) => {
-  const transformedItems = items.filter((item) => item.menu_id === menu_id).map((item) => {
+export const transformItems = (items: ApiMenuItem[]) => {
+  const transformedItems = items.map((item) => {
     if (item.is_section_title) {
       const is_title = true;
       const { id, position, text } = item;

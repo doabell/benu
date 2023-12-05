@@ -37,9 +37,9 @@ export const fetchExternalMenu = async (
     return noData;
   }
 
-  const menu_id = Number(Object.keys(day_data.menu_info)[0]);
+  // const menu_id = Number(Object.keys(day_data.menu_info)[0]);
 
-  const transformedItems = transformItems(items, menu_id);
+  const transformedItems = transformItems(items);
 
   if (transformedItems.length === 0) {
     return noData;
