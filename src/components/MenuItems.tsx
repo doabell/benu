@@ -1,5 +1,6 @@
 import React from "react";
 import {
+  IconButton,
   List,
   ListItem,
   ListItemIcon,
@@ -25,13 +26,14 @@ const MenuItems: React.FC<MenuItemsProps> = ({ items }) => {
       return (
         <ListItem key={item.id} sx={{ paddingY: 0.5 }}>
           <ListItemIcon>
-            <a
+            <IconButton
+              aria-label="search for image"
               href={`https://duckduckgo.com/?q=${item.name}&t=hi&iar=images&iax=images&ia=images`}
               target="_blank"
               rel="noopener noreferrer"
             >
               <ImageSearchIcon />
-            </a>
+            </IconButton>
           </ListItemIcon>
           <ListItemText
             primary={item.name}
