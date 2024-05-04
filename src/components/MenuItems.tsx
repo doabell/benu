@@ -28,7 +28,7 @@ const MenuItems: React.FC<MenuItemsProps> = ({ items }) => {
           <ListItemIcon>
             <IconButton
               aria-label="search for image"
-              href={`https://duckduckgo.com/?q=${item.name}&t=hi&iar=images&iax=images&ia=images`}
+              href={`https://duckduckgo.com/?q=${encodeURIComponent(item.name || "Richard Paul Astley")}&t=hi&iar=images&iax=images&ia=images`}
               target="_blank"
               rel="noopener noreferrer"
             >
