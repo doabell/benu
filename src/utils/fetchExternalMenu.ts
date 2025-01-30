@@ -39,11 +39,11 @@ export const fetchExternalMenu = async (
 
   // const menu_id = Number(Object.keys(day_data.menu_info)[0]);
 
-  const transformedItems = transformItems(items);
+  const sections = transformItems(items);
 
-  if (transformedItems.length === 0) {
+  if (sections.length === 0) {
     return noData;
   } else {
-    return transformedItems;
+    return sections;
   }
 };

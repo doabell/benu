@@ -1,8 +1,12 @@
 [
   {
-    "id": 60000000,
-    "position": 0,
-    "is_title": true,
-    "name": "No data. Not open?"
+    "title": "No data available",
+    "items": [
+      {
+        "id": 1,
+        "position": 1,
+        "name": "Closed?"
+      }
+    ]
   }
 ]

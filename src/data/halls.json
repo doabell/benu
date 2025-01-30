@@ -48,29 +48,5 @@
         "name": "Dinner"
       }
     ]
-  },
-  {
-    "id": "the-grille",
-    "name": "The Grille",
-    "options": [
-      {
-        "id": "grille-menu-2022",
-        "name": "Grille"
-      }
-    ]
-  },
-  {
-    "id": "wilson-cafe",
-    "name": "Wilson Cafe",
-    "options": [
-      {
-        "id": "coffee-and-drinks",
-        "name": "Drinks"
-      },
-      {
-        "id": "bagels-and-sandwiches",
-        "name": "Food"
-      }
-    ]
   }
 ]

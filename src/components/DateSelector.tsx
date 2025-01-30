@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { DatePicker } from "@mui/x-date-pickers";
 import { IconButton, Stack } from "@mui/material";
 import ArrowBackIosIcon from "@mui/icons-material/ArrowBackIos";
@@ -11,12 +11,19 @@ interface DateSelectorProps {
 }
 
 const DateSelector: React.FC<DateSelectorProps> = ({ date, onDateChange }) => {
+  const [formattedDate, setFormattedDate] = useState("");
+
+  useEffect(() => {
+    setFormattedDate(dayjs(date).format("dddd"));
+  }, [date]);
+
   const lastDay = () => {
     onDateChange(date.subtract(1, "day"));
   };
   const nextDay = () => {
     onDateChange(date.add(1, "day"));
   };
+
   return (
     <Stack
       direction="row"
@@ -28,8 +35,8 @@ const DateSelector: React.FC<DateSelectorProps> = ({ date, onDateChange }) => {
         <ArrowBackIosIcon />
       </IconButton>
       <DatePicker
-        label={dayjs(date).format("dddd")}
-        value={dayjs(date)}
+        label={formattedDate}
+        value={date}
         onChange={onDateChange}
       />
       <IconButton aria-label="next day" onClick={nextDay} size="small">

@@ -16,6 +16,13 @@ interface ApiResponse {
         name: string;
         subtext?: string;
         price?: number;
+        icons?: {
+          food_icons: {
+            slug: string;
+            name: string;
+            sort_order: number;
+          }[];
+        },
       } | null;
       menu_id: number;
     }[];
