@@ -11,15 +11,20 @@ import ImageSearchIcon from "@mui/icons-material/ImageSearch";
 import MenuSection from "@/models/MenuSection";
 import iconMap from "@/data/iconMap.json";
 
+interface IconMap {
+  [key: string]: string;
+}
+
+const typedIconMap: IconMap = iconMap;
+
 interface MenuSectionsProps {
   sections: MenuSection[];
 }
 
-
 const MenuSections: React.FC<MenuSectionsProps> = ({ sections }) => {
   const menuSections = sections.map((section) => {
     const listItems = section.items.map((item) => {
-      const icons = item.icon_names && item.icon_names.map((icon_name) => iconMap[icon_name] || icon_name).join(", ");
+      const icons = item.icon_names && item.icon_names.map((icon_name) => typedIconMap[icon_name] || icon_name).join(", ");
       return (
         <ListItem key={item.id} sx={{ paddingY: 0.5 }}>
           <ListItemIcon>

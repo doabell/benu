@@ -111,7 +111,7 @@ const HomePage: React.FC<{ colorMode: ColorMode }> = ({ colorMode }) => {
         meal.set(options[0].id);
       }
     }
-  }, [date, place, meal]);
+  });
 
   return (
     <LocalizationProvider dateAdapter={AdapterDayjs}>
