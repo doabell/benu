@@ -1,5 +1,8 @@
 // https://github.com/shadowwalker/next-pwa/blob/master/cache.js
-// Workbox RuntimeCaching config: https://developers.google.com/web/tools/workbox/reference-docs/latest/module-workbox-build#.RuntimeCachingEntry
+// Workbox RuntimeCaching config
+// https://developer.chrome.com/docs/workbox/modules/workbox-strategies
+// https://web.archive.org/web/20250124114354/https://developer.chrome.com/docs/workbox/modules/workbox-strategies
+
 const cache = [
   {
     urlPattern: /^https:\/\/fonts\.(?:gstatic)\.com\/.*/i,
@@ -136,7 +139,7 @@ const cache = [
       if (pathname.startsWith("/api/")) return true
       return false
     },
-    handler: "CacheFirst",
+    handler: "NetworkFirst",
     method: "GET",
     options: {
       cacheName: "apis",
