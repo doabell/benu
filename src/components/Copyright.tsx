@@ -24,6 +24,7 @@ const Copyright: React.FC = () => {
           <Link
             color="inherit"
             href="https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+            rel="noreferrer"
           >
             strangers to love
           </Link>
@@ -32,6 +33,7 @@ const Copyright: React.FC = () => {
           <Link
             color="inherit"
             href="https://middlebury.api.nutrislice.com/terms-of-use"
+            rel="noreferrer"
           >
             Nutrislice Terms of Use
           </Link>

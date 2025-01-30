@@ -13,6 +13,7 @@ import {
   Stack,
   Fab,
   useTheme,
+  Link
 } from "@mui/material";
 import LightModeIcon from "@mui/icons-material/LightMode";
 import DarkModeIcon from "@mui/icons-material/DarkMode";
@@ -149,7 +150,12 @@ const HomePage: React.FC<{ colorMode: ColorMode }> = ({ colorMode }) => {
       </Grid>
       <Container maxWidth="lg">
         {!promiseInProgress && MenuSections.length > 0 ? (
+          <>
           <MenuSections sections={MenuSectionsState} />
+          <Link href={`https://middlebury.nutrislice.com/menu/${place.value}/${meal.value}/${date?.format("YYYY-MM-DD")}`} variant="h6" color="inherit" rel="noreferrer">
+          View original menu
+          </Link>
+          </>
         ) : (
           <>
             <Box mt={5}>
