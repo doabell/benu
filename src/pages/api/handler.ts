@@ -26,10 +26,10 @@ export default async function handler(request: NextRequest) {
     );
   }
 
-  const items = await fetchExternalMenu(dateStr, place, meal);
+  const sections = await fetchExternalMenu(dateStr, place, meal);
 
   return new Response(
-    JSON.stringify(items),
+    JSON.stringify(sections),
     {
       status: 200,
       headers: {
