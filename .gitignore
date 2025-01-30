@@ -5,8 +5,9 @@ benu.db
 
 # Service workers
 public/workbox-*.js
+public/workbox-*.js.map
 public/sw.js
-public/worker-*.js
+public/sw.js.map
 
 # dependencies
 /node_modules

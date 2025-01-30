@@ -3,7 +3,7 @@ import dayjs from "dayjs";
 import DateSelector from "../components/DateSelector";
 import MealSelector from "../components/MealSelector";
 import PlaceSelector from "../components/PlaceSelector";
-import MenuItems from "../components/MenuItems";
+import MenuSections from "../components/MenuSections";
 
 import Grid from "@mui/material/Unstable_Grid2"; // Grid version 2
 import {
@@ -13,6 +13,7 @@ import {
   Stack,
   Fab,
   useTheme,
+  Link
 } from "@mui/material";
 import LightModeIcon from "@mui/icons-material/LightMode";
 import DarkModeIcon from "@mui/icons-material/DarkMode";
@@ -20,7 +21,7 @@ import TodayIcon from "@mui/icons-material/Today";
 import { LocalizationProvider } from "@mui/x-date-pickers";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 
-import MenuItem from "@/models/MenuItem";
+import MenuSection from "@/models/MenuSection";
 import ColorMode from "@/models/ColorMode";
 import halls from "@/data/halls.json";
 
@@ -55,7 +56,7 @@ const HomePage: React.FC<{ colorMode: ColorMode }> = ({ colorMode }) => {
     defaultValue: meals[0].id,
     initializeWithValue: false,
   });
-  const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
+  const [MenuSectionsState, setMenuSectionsState] = useState<MenuSection[]>([]);
 
   const handleDateChange = (newDate: dayjs.Dayjs | null) => {
     if (newDate) {
@@ -72,7 +73,7 @@ const HomePage: React.FC<{ colorMode: ColorMode }> = ({ colorMode }) => {
     }
   }, [place]);
 
-  const fetchMenuItems = async (
+  const fetchMenuSections = async (
     dateObject: dayjs.Dayjs,
     placeStr: string,
     mealStr: string
@@ -86,22 +87,18 @@ const HomePage: React.FC<{ colorMode: ColorMode }> = ({ colorMode }) => {
         throw new Error(response.statusText);
       }
       const data = await response.json();
-      setMenuItems(data);
+      setMenuSectionsState(data);
     } catch (error) {
-      setMenuItems([
-        {
-          id: 60000000,
-          position: 0,
-          is_title: true,
-          name: "Error loading menu",
-        },
-        {
-          id: 60000001,
-          position: 1,
-          is_title: false,
-          name: "Check your Internet connection",
-        },
-      ]);
+      setMenuSectionsState(
+        [{
+          title: "Error loading menu",
+          items: [{
+            id: 1,
+            position: 1,
+            name: "Check your Internet connection",
+          }],
+        }]
+    );
     }
   };
 
@@ -110,7 +107,7 @@ const HomePage: React.FC<{ colorMode: ColorMode }> = ({ colorMode }) => {
     if (hall && date && place.value && meal.value) {
       const { options } = hall;
       if (options.filter((option) => option.id === meal.value).length !== 0) {
-        trackPromise(fetchMenuItems(date, place.value, meal.value));
+        trackPromise(fetchMenuSections(date, place.value, meal.value));
       } else {
         meal.set(options[0].id);
       }
@@ -152,8 +149,13 @@ const HomePage: React.FC<{ colorMode: ColorMode }> = ({ colorMode }) => {
         </Grid>
       </Grid>
       <Container maxWidth="lg">
-        {!promiseInProgress && menuItems.length > 0 ? (
-          <MenuItems items={menuItems} />
+        {!promiseInProgress && MenuSections.length > 0 ? (
+          <>
+          <MenuSections sections={MenuSectionsState} />
+          <Link href={`https://middlebury.nutrislice.com/menu/${place.value}/${meal.value}/${date?.format("YYYY-MM-DD")}`} variant="h6" color="inherit" rel="noreferrer">
+          View original menu
+          </Link>
+          </>
         ) : (
           <>
             <Box mt={5}>
