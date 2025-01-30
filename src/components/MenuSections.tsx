@@ -9,21 +9,12 @@ import {
 } from "@mui/material";
 import ImageSearchIcon from "@mui/icons-material/ImageSearch";
 import MenuSection from "@/models/MenuSection";
+import iconMap from "@/data/iconMap.json";
 
 interface MenuSectionsProps {
   sections: MenuSection[];
 }
 
-const iconMap: { [key: string]: string } = {
-  Vegan: "🥗Vegan",
-  Vegetarian: "🥦Vegetarian",
-  Wheat: "🌾Wheat",
-  Soy: "🌱Soy",
-  Milk: "🥛Milk",
-  Egg: "🥚Egg",
-  Sesame: "🌿Sesame",
-  Fish: "🐟Fish",
-};
 
 const MenuSections: React.FC<MenuSectionsProps> = ({ sections }) => {
   const menuSections = sections.map((section) => {
