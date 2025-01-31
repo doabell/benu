@@ -4,6 +4,7 @@ import DateSelector from "../components/DateSelector";
 import MealSelector from "../components/MealSelector";
 import PlaceSelector from "../components/PlaceSelector";
 import MenuSections from "../components/MenuSections";
+import noConnection from "@/data/noConnection.json";
 
 import Grid from "@mui/material/Unstable_Grid2"; // Grid version 2
 import {
@@ -89,16 +90,7 @@ const HomePage: React.FC<{ colorMode: ColorMode }> = ({ colorMode }) => {
       const data = await response.json();
       setMenuSectionsState(data);
     } catch (error) {
-      setMenuSectionsState(
-        [{
-          title: "Error loading menu",
-          items: [{
-            id: 1,
-            position: 1,
-            name: "Check your Internet connection",
-          }],
-        }]
-    );
+      setMenuSectionsState(noConnection);
     }
   };
 

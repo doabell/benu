@@ -1,5 +1,5 @@
 import ApiResponse from "@/models/ApiResponse";
-import noData from "../data/noData.json";
+import noData from "@/data/noData.json";
 import { transformItems } from "./transformItems";
 
 export const fetchExternalMenu = async (

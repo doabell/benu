@@ -1,0 +1,22 @@
+[
+  {
+    "title": "Error loading menu",
+    "items": [
+      {
+        "id": 1,
+        "position": 1,
+        "name": "Check your Internet connection"
+      },
+      {
+        "id": 2,
+        "position": 2,
+        "name": "Or maybe Nutrislice or Vercel is down"
+      },
+      {
+        "id": 3,
+        "position": 3,
+        "name": "Yes, Nutrislice was down when I wrote this"
+      }
+    ]
+  }
+]
