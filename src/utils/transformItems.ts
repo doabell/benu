@@ -1,6 +1,6 @@
 import ApiResponse from "@/models/ApiResponse";
 import MenuSection from "@/models/MenuSection";
-import ignoredSections from "../data/ignoredSections.json";
+import ignoredSections from "@/data/ignoredSections.json";
 
 type ApiMenuItem = ApiResponse["days"][0]["menu_items"][0];
 
