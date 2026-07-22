@@ -274,9 +274,9 @@
 
     const cycleFilter = (filter: string): void => {
         const nextState: Record<FilterState, FilterState> = {
-            on: "off",
-            off: "only",
-            only: "on"
+            on: "only",
+            only: "off",
+            off: "on"
         };
         const nextFilterStates = {
             ...filterStates,
