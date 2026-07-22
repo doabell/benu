@@ -71,6 +71,7 @@
     let filterStates = $state<Record<string, FilterState>>({});
     let online = $state(true);
     let currentTime = $state(new Date());
+    let filtersExpanded = $state(false);
     let requestNumber = 0;
     let activeController: AbortController | undefined;
 
@@ -124,7 +125,6 @@
         menuStatus = "loading";
         errorMessage = "";
         sections = [];
-        filterStates = {};
 
         const params = new URLSearchParams({
             dateStr: selection.dateStr,
@@ -246,6 +246,19 @@
             .filter((section) => section.items.length > 0)
     );
 
+    const totalItemCount = $derived(
+        sections.reduce((count, section) => count + section.items.length, 0)
+    );
+    const visibleItemCount = $derived(
+        visibleSections.reduce(
+            (count, section) => count + section.items.length,
+            0
+        )
+    );
+    const hasActiveFilters = $derived(
+        Object.values(filterStates).some((state) => state !== "on")
+    );
+
     const filterState = (filter: string): FilterState =>
         filterStates[filter] ?? "on";
 
@@ -308,6 +321,7 @@
             halls.find((candidate) => candidate.id === nextPlace) ?? halls[0];
         const storedMeal = localStorage.getItem("meal");
         filterStates = readFilterStates();
+        filtersExpanded = window.matchMedia("(min-width: 601px)").matches;
 
         date =
             storedDate && isValidDateString(storedDate) ? storedDate : today();
@@ -440,45 +454,63 @@
     {/if}
 
     {#if menuStatus === "ready" && sections.length > 0 && availableFilters.length > 0}
-        <section class="menu-tools" aria-labelledby="filters-heading">
-            <div class="filters-heading-row">
-                <h2 id="filters-heading" class="filters-heading">Filters</h2>
+        <details
+            class="filter-panel"
+            open={filtersExpanded}
+            ontoggle={(event) =>
+                (filtersExpanded = (event.currentTarget as HTMLDetailsElement)
+                    .open)}
+        >
+            <summary class="filters-summary">
+                <span
+                    id="filters-heading"
+                    class="filters-heading"
+                    role="heading"
+                    aria-level="2">Filters</span
+                >
+                <span class="filter-count">
+                    {#if hasActiveFilters}
+                        {visibleItemCount} of {totalItemCount} items
+                    {:else}
+                        {totalItemCount} items
+                    {/if}
+                </span>
+            </summary>
+            <div class="menu-tools" aria-labelledby="filters-heading">
+                <div class="filter-list" aria-label="Dietary filters">
+                    {#each availableFilters as filter (filter)}
+                        {@const state = filterState(filter)}
+                        <button
+                            class="filter-chip"
+                            class:off={state === "off"}
+                            class:only={state === "only"}
+                            type="button"
+                            aria-label={`${filter}: ${filterStateLabel(state)}`}
+                            title={`${filterStateLabel(state)} — click to cycle`}
+                            data-state={state}
+                            onclick={() => cycleFilter(filter)}
+                        >
+                            {iconMap[filter] ?? filter}
+                            <span class="filter-state" aria-hidden="true">
+                                {state === "off"
+                                    ? "off"
+                                    : state === "only"
+                                      ? "only"
+                                      : "on"}
+                            </span>
+                        </button>
+                    {/each}
+                </div>
                 <button
                     class="reset-filters"
                     type="button"
-                    disabled={Object.values(filterStates).every(
-                        (state) => state === "on"
-                    )}
+                    disabled={!hasActiveFilters}
                     onclick={resetFilters}
                 >
-                    Reset
+                    Reset filters
                 </button>
             </div>
-            <div class="filter-list" aria-label="Dietary filters">
-                {#each availableFilters as filter (filter)}
-                    {@const state = filterState(filter)}
-                    <button
-                        class="filter-chip"
-                        class:off={state === "off"}
-                        class:only={state === "only"}
-                        type="button"
-                        aria-label={`${filter}: ${filterStateLabel(state)}`}
-                        title={`${filterStateLabel(state)} — click to cycle`}
-                        data-state={state}
-                        onclick={() => cycleFilter(filter)}
-                    >
-                        {iconMap[filter] ?? filter}
-                        <span class="filter-state" aria-hidden="true">
-                            {state === "off"
-                                ? "off"
-                                : state === "only"
-                                  ? "only"
-                                  : "on"}
-                        </span>
-                    </button>
-                {/each}
-            </div>
-        </section>
+        </details>
     {/if}
 
     <section class="menu-card" aria-live="polite" aria-busy={loading}>

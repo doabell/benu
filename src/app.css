@@ -316,17 +316,31 @@ input[type="date"] {
     text-underline-offset: 0.15em;
 }
 
-.menu-tools {
-    display: grid;
-    gap: 0.75rem;
+.filter-panel {
     margin-bottom: 1rem;
 }
 
-.filters-heading-row {
+.filters-summary {
     display: flex;
     align-items: center;
     justify-content: flex-start;
     gap: 0.65rem;
+    cursor: pointer;
+    list-style: none;
+}
+
+.filters-summary::-webkit-details-marker {
+    display: none;
+}
+
+.filters-summary::before {
+    color: var(--muted);
+    content: "▸";
+    font-size: 0.9rem;
+}
+
+.filter-panel[open] .filters-summary::before {
+    content: "▾";
 }
 
 .filters-heading {
@@ -334,6 +348,17 @@ input[type="date"] {
     color: var(--text);
     font-size: 1rem;
     font-weight: 500;
+}
+
+.filter-count {
+    color: var(--muted);
+    font-size: 0.9rem;
+}
+
+.menu-tools {
+    display: grid;
+    gap: 0.65rem;
+    margin-top: 0.65rem;
 }
 
 .reset-filters {
