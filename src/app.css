@@ -325,37 +325,37 @@ input[type="date"] {
 .filters-heading-row {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    gap: 1rem;
+    justify-content: flex-start;
+    gap: 0.65rem;
 }
 
 .filters-heading {
     margin: 0;
     color: var(--text);
-    font-size: 0.85rem;
-    font-weight: 600;
-    letter-spacing: 0.04em;
+    font-size: 1rem;
+    font-weight: 500;
 }
 
 .reset-filters {
-    padding: 0.25rem 0.5rem;
-    border: 1px solid var(--border);
-    border-radius: 0.35rem;
-    background: var(--surface);
+    padding: 0.15rem 0;
+    border: 0;
+    background: transparent;
     color: var(--muted);
     cursor: pointer;
-    font-size: 0.8rem;
+    font-size: 0.9rem;
+    text-decoration: underline;
+    text-underline-offset: 0.15em;
 }
 
 .reset-filters:hover:not(:disabled),
 .reset-filters:focus-visible:not(:disabled) {
-    border-color: var(--accent);
-    color: var(--text);
+    color: var(--accent);
 }
 
 .reset-filters:disabled {
     cursor: default;
-    opacity: 0.45;
+    color: var(--border);
+    text-decoration: none;
 }
 
 .filter-list {
@@ -366,11 +366,12 @@ input[type="date"] {
 }
 
 .filter-chip {
-    min-height: 2.25rem;
-    padding: 0 0.35rem;
-    border: 1px solid var(--border);
-    border-radius: 999px;
-    background: var(--surface);
+    min-height: 2rem;
+    padding: 0.3rem 0;
+    border: 0;
+    border-bottom: 2px solid transparent;
+    border-radius: 0;
+    background: transparent;
     color: var(--muted);
     cursor: pointer;
     font-size: 1rem;
@@ -383,12 +384,11 @@ input[type="date"] {
 }
 
 .filter-chip.only {
-    border-color: var(--accent);
+    border-bottom-color: var(--accent);
     background: color-mix(in srgb, var(--accent) 12%, transparent);
 }
 
 .filter-chip.off {
-    border-color: color-mix(in srgb, var(--muted) 65%, transparent);
     color: var(--muted);
     text-decoration: line-through;
     text-decoration-thickness: 0.12em;
@@ -751,13 +751,28 @@ footer a {
 @media (max-width: 600px) {
     .app-shell {
         width: min(100% - 1.25rem, 620px);
-        padding-top: 0.75rem;
+        padding-top: 0.5rem;
         padding-bottom: 7rem;
+    }
+
+    .site-header {
+        margin-bottom: 0.5rem;
+    }
+
+    h1 {
+        margin-bottom: 0.1rem;
+        font-size: 2.25rem;
+        line-height: 1;
+    }
+
+    .tagline {
+        font-size: 0.9rem;
     }
 
     .controls {
         grid-template-columns: 1fr;
-        gap: 0.25rem;
+        gap: 0;
+        margin-bottom: 0.5rem;
     }
 
     .tab-group:first-child {
@@ -768,12 +783,36 @@ footer a {
         justify-content: flex-start;
     }
 
+    .tab-button {
+        min-height: 2.5rem;
+        padding-top: 0.5rem;
+        padding-bottom: 0.5rem;
+    }
+
     .date-selector {
         order: -1;
+        min-height: 2.5rem;
+    }
+
+    .icon-button,
+    input[type="date"] {
+        height: 2.25rem;
+    }
+
+    .icon-button {
+        width: 2.25rem;
+    }
+
+    .availability {
+        min-height: 2.5rem;
+        margin-bottom: 0.5rem;
+        padding: 0.45rem 0.65rem;
+        gap: 0.5rem;
+        font-size: 0.9rem;
     }
 
     .menu-card {
-        padding-top: 0.5rem;
+        padding-top: 0.25rem;
     }
 
     .action-stack {
