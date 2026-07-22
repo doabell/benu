@@ -78,6 +78,7 @@
     let filterStates = $state<Record<string, FilterState>>({});
     let online = $state(true);
     let currentTime = $state(new Date());
+    let hasDataElsewhere = $state(false);
     let filtersExpanded = $state(false);
     let requestNumber = 0;
     let activeController: AbortController | undefined;
@@ -133,6 +134,7 @@
         menuStatus = "loading";
         errorMessage = "";
         sections = [];
+        hasDataElsewhere = false;
 
         const params = new URLSearchParams({
             dateStr: selection.dateStr,
@@ -150,6 +152,8 @@
 
             if (currentRequest === requestNumber) {
                 const result = response.headers.get("X-Menu-Result");
+                hasDataElsewhere =
+                    response.headers.get("X-Menu-Data-Elsewhere") === "true";
                 if (result === "closed" || result === "unavailable") {
                     sections = [];
                     menuStatus = result;
@@ -218,7 +222,9 @@
 
     const availability = $derived(getMealStatus(place, currentTime));
     const campusDate = $derived(campusToday(currentTime));
-    const emptyMenuReason = $derived(getNoDataReason(date, campusDate));
+    const emptyMenuReason = $derived(
+        getNoDataReason(date, campusDate, hasDataElsewhere)
+    );
     const availableFilters = $derived.by(() => {
         const presentIcons = new Set(
             sections.flatMap((section) =>

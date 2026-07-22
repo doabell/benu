@@ -150,8 +150,10 @@ export const campusToday = (date = new Date()): string => {
 
 export const getNoDataReason = (
     dateStr: string,
-    campusDate = campusToday()
+    campusDate = campusToday(),
+    hasDataElsewhere = false
 ): string => {
+    if (hasDataElsewhere) return "Closed?";
     if (dateStr > campusDate) return "Not published yet?";
     if (dateStr < campusDate) return "Too far away?";
     return "Closed?";

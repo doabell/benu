@@ -57,4 +57,10 @@ describe("dining schedule", () => {
             "Too far away?"
         );
     });
+
+    it("uses another hall's data as a closed-day hint", () => {
+        expect(getNoDataReason("2026-01-14", "2026-01-13", true)).toBe(
+            "Closed?"
+        );
+    });
 });

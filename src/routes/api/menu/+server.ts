@@ -29,7 +29,10 @@ export const GET: RequestHandler = async ({ url, fetch }) => {
                 "Cache-Control": MENU_CACHE_CONTROL,
                 "X-Menu-Cache": result.status,
                 "X-Menu-Cache-Key": key,
-                "X-Menu-Result": result.value.result
+                "X-Menu-Result": result.value.result,
+                "X-Menu-Data-Elsewhere": String(
+                    result.value.hasDataElsewhere ?? false
+                )
             }
         });
     } catch {

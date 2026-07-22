@@ -1,4 +1,4 @@
-import { noData } from "../menu/data";
+import { halls, noData } from "../menu/data";
 import { transformItems } from "../menu/transform";
 import type { ApiResponse, MenuQuery, MenuSection } from "../menu/types";
 
@@ -11,23 +11,26 @@ export type MenuResult = "ok" | "closed" | "unavailable";
 export interface MenuFetchResult {
     sections: MenuSection[];
     result: MenuResult;
+    hasDataElsewhere?: boolean;
 }
 
-export async function fetchExternalMenu(
-    query: MenuQuery,
-    fetcher: typeof fetch
-): Promise<MenuFetchResult> {
+const menuUrl = (query: MenuQuery): string => {
     const month = query.dateStr.slice(5, 7);
     const day = query.dateStr.slice(8, 10);
-    const url = `${UPSTREAM_BASE}/${encodeURIComponent(query.place)}/menu-type/${encodeURIComponent(
+    return `${UPSTREAM_BASE}/${encodeURIComponent(query.place)}/menu-type/${encodeURIComponent(
         query.meal
     )}/${query.dateStr.slice(0, 4)}/${month}/${day}/?format=json`;
+};
 
+const fetchHallMenu = async (
+    query: MenuQuery,
+    fetcher: typeof fetch
+): Promise<MenuFetchResult> => {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), UPSTREAM_TIMEOUT_MS);
 
     try {
-        const response = await fetcher(url, {
+        const response = await fetcher(menuUrl(query), {
             headers: { accept: "application/json" },
             signal: controller.signal
         });
@@ -59,4 +62,44 @@ export async function fetchExternalMenu(
     } finally {
         clearTimeout(timeout);
     }
+};
+
+const hasDataElsewhere = async (
+    query: MenuQuery,
+    fetcher: typeof fetch
+): Promise<boolean> => {
+    const otherHalls = halls.filter(
+        (hall) =>
+            hall.id !== query.place &&
+            hall.options.some((option) => option.id === query.meal)
+    );
+
+    const results = await Promise.all(
+        otherHalls.map(async (hall) => {
+            try {
+                const result = await fetchHallMenu(
+                    { ...query, place: hall.id },
+                    fetcher
+                );
+                return result.result === "ok";
+            } catch {
+                return false;
+            }
+        })
+    );
+
+    return results.some(Boolean);
+};
+
+export async function fetchExternalMenu(
+    query: MenuQuery,
+    fetcher: typeof fetch
+): Promise<MenuFetchResult> {
+    const result = await fetchHallMenu(query, fetcher);
+    if (result.result === "ok") return result;
+
+    return {
+        ...result,
+        hasDataElsewhere: await hasDataElsewhere(query, fetcher)
+    };
 }
