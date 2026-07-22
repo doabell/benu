@@ -28,9 +28,14 @@
 
     type MenuStatus =
         "idle" | "loading" | "ready" | "closed" | "unavailable" | "error";
+    type FilterState = "on" | "off" | "only";
 
     const today = campusToday;
     const dietaryFilterOrder = [
+        "Beef",
+        "Halal",
+        "Dairy",
+        "Pork",
         "Vegan",
         "Vegetarian",
         "Local Ingredient",
@@ -62,7 +67,7 @@
     let loading = $state(false);
     let menuStatus = $state<MenuStatus>("idle");
     let errorMessage = $state("");
-    let activeFilters = $state<string[]>([]);
+    let filterStates = $state<Record<string, FilterState>>({});
     let online = $state(true);
     let currentTime = $state(new Date());
     let requestNumber = 0;
@@ -78,6 +83,8 @@
     };
 
     const loadMenu = async (selection: Selection): Promise<void> => {
+        if (typeof window === "undefined") return;
+
         const currentRequest = ++requestNumber;
         activeController?.abort();
         activeController = new AbortController();
@@ -85,7 +92,7 @@
         menuStatus = "loading";
         errorMessage = "";
         sections = [];
-        activeFilters = [];
+        filterStates = {};
 
         const params = new URLSearchParams({
             dateStr: selection.dateStr,
@@ -185,19 +192,47 @@
         sections
             .map((section) => ({
                 ...section,
-                items: section.items.filter((item) =>
-                    activeFilters.every((filter) =>
-                        item.iconNames?.includes(filter)
-                    )
-                )
+                items: section.items.filter((item) => {
+                    const iconNames = item.iconNames ?? [];
+                    const onlyFilters = availableFilters.filter(
+                        (filter) => filterStates[filter] === "only"
+                    );
+                    const offFilters = availableFilters.filter(
+                        (filter) => filterStates[filter] === "off"
+                    );
+
+                    return (
+                        onlyFilters.every((filter) =>
+                            iconNames.includes(filter)
+                        ) &&
+                        offFilters.every(
+                            (filter) => !iconNames.includes(filter)
+                        )
+                    );
+                })
             }))
             .filter((section) => section.items.length > 0)
     );
 
-    const toggleFilter = (filter: string): void => {
-        activeFilters = activeFilters.includes(filter)
-            ? activeFilters.filter((candidate) => candidate !== filter)
-            : [...activeFilters, filter];
+    const filterState = (filter: string): FilterState =>
+        filterStates[filter] ?? "on";
+
+    const filterStateLabel = (state: FilterState): string => {
+        if (state === "off") return "excluded";
+        if (state === "only") return "only";
+        return "included";
+    };
+
+    const cycleFilter = (filter: string): void => {
+        const nextState: Record<FilterState, FilterState> = {
+            on: "off",
+            off: "only",
+            only: "on"
+        };
+        filterStates = {
+            ...filterStates,
+            [filter]: nextState[filterState(filter)]
+        };
     };
 
     const isEmptyResponse = (menu: MenuSection[]): boolean =>
@@ -365,17 +400,29 @@
     {/if}
 
     {#if menuStatus === "ready" && sections.length > 0 && availableFilters.length > 0}
-        <section class="menu-tools" aria-label="Filter menu">
+        <section class="menu-tools" aria-labelledby="filters-heading">
+            <h2 id="filters-heading" class="filters-heading">Filters</h2>
             <div class="filter-list" aria-label="Dietary filters">
                 {#each availableFilters as filter (filter)}
+                    {@const state = filterState(filter)}
                     <button
                         class="filter-chip"
-                        class:active={activeFilters.includes(filter)}
+                        class:off={state === "off"}
+                        class:only={state === "only"}
                         type="button"
-                        aria-pressed={activeFilters.includes(filter)}
-                        onclick={() => toggleFilter(filter)}
+                        aria-label={`${filter}: ${filterStateLabel(state)}`}
+                        title={`${filterStateLabel(state)} — click to cycle`}
+                        data-state={state}
+                        onclick={() => cycleFilter(filter)}
                     >
                         {iconMap[filter] ?? filter}
+                        <span class="filter-state" aria-hidden="true">
+                            {state === "off"
+                                ? "off"
+                                : state === "only"
+                                  ? "only"
+                                  : "on"}
+                        </span>
                     </button>
                 {/each}
             </div>

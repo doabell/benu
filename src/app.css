@@ -322,6 +322,15 @@ input[type="date"] {
     margin-bottom: 1rem;
 }
 
+.filters-heading {
+    margin: 0;
+    color: var(--text);
+    font-size: 0.85rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
 .filter-list {
     display: flex;
     flex-wrap: wrap;
@@ -341,12 +350,28 @@ input[type="date"] {
 }
 
 .filter-chip:hover,
-.filter-chip.active {
+.filter-chip:focus-visible,
+.filter-chip.only {
     color: var(--text);
 }
 
-.filter-chip.active {
+.filter-chip.only {
     border-bottom-color: var(--accent);
+    background: color-mix(in srgb, var(--accent) 12%, transparent);
+}
+
+.filter-chip.off {
+    color: var(--muted);
+    text-decoration: line-through;
+    text-decoration-thickness: 0.12em;
+    opacity: 0.7;
+}
+
+.filter-state {
+    margin-left: 0.2rem;
+    color: var(--muted);
+    font-size: 0.7rem;
+    text-transform: uppercase;
 }
 
 .menu-card {
