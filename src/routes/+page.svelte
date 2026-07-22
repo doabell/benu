@@ -221,7 +221,9 @@
         );
         return dietaryFilterOrder.filter(
             (filter) =>
-                presentIcons.has(filter) || filterStates[filter] !== "on"
+                presentIcons.has(filter) ||
+                filterStates[filter] === "off" ||
+                filterStates[filter] === "only"
         );
     });
 
