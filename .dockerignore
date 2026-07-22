@@ -1,8 +1,7 @@
-fly.toml
-Dockerfile
-.dockerignore
 node_modules
-npm-debug.log
-README.md
-.next
+.svelte-kit
+build
+coverage
 .git
+.gitignore
+*.log

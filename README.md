@@ -2,30 +2,42 @@
 
 > Menu, but better
 
-This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app), and deployed on [Vercel](https://vercel.com/docs/frameworks/nextjs).
+Benu is a SvelteKit app that displays Middlebury dining menus. The application is built around standard web APIs so the same source can run on a Node server, Vercel functions, or Cloudflare Workers.
 
-It uses [`shadowwalker/next-pwa`](https://github.com/shadowwalker/next-pwa) for two purposes:
+## Quick start
 
-- Add to home screen in iOS (only works in Safari)
-- Offline availability (there might still be a delay unless you turn on airplane mode)
+```sh
+npm install
+npm run dev
+```
 
-## Quick Start
+Useful checks:
 
-Clone the repository and `npm ci` or `npm install`.
+```sh
+npm run check
+npm run lint
+npm test
+npm run build
+```
 
-## Edge Functions
+## Deployment adapters
 
-`src/pages/api/handler.ts` is an [Edge Function](https://vercel.com/docs/functions/edge-functions/quickstart) in Vercel.
+The adapter is selected in `svelte.config.js`:
 
-There is [a limit](https://vercel.com/docs/functions/edge-functions/usage-and-pricing) of 500,000 "execution units" (50 ms of CPU time).
+- local builds and the Docker image use `adapter-node`;
+- Vercel builds select `adapter-vercel` when `VERCEL` is set;
+- Cloudflare Pages/Workers builds select `adapter-cloudflare` when `CF_PAGES` is set;
+- Cloudflare Workers builds outside Pages should set `SVELTE_ADAPTER=cloudflare` before `npm run build`;
+- `SVELTE_ADAPTER=auto` is available when SvelteKit's adapter detection is preferred.
 
-## Cache
+The application does not call provider APIs directly. Deployments can use the response's standard `Cache-Control` headers for CDN caching.
 
-The `Cache-Control` header is set in `src/pages/api/handler.ts`.
+## Caching
 
-You can customize browser and Vercel caching by setting [the relevant headers](https://vercel.com/docs/edge-network/caching#cache-control-options).
+`GET /api/menu` uses a bounded warm-instance cache for request deduplication and stale-while-revalidate behavior. Its response headers allow a Vercel, Cloudflare, or other HTTP cache to share menu responses:
 
+```text
+public, max-age=300, s-maxage=3600, stale-while-revalidate=86400
+```
 
-PWA-level caching is set in `cache.js`.
-
-Note on Vercel caching: you'll only see cache misses in the logs; head over to DevTools to see cache hits.
+The PWA service worker uses a separate per-device `NetworkFirst` cache for offline menu access.

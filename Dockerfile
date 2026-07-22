@@ -1,41 +1,29 @@
-# Install dependencies only when needed
-FROM node:18-alpine AS builder
-# Check https://github.com/nodejs/docker-node/tree/b4117f9333da4138b03a546ec926ef50a31506c3#nodealpine to understand why libc6-compat might be needed.
+FROM node:24-alpine AS builder
+
 RUN apk add --no-cache libc6-compat
 WORKDIR /app
+
+COPY package.json package-lock.json ./
+RUN npm ci --no-audit --no-fund
+
 COPY . .
-# RUN yarn install --frozen-lockfile
+ENV NODE_ENV=production
+ENV SVELTE_ADAPTER=node
 
-# If using npm with a `package-lock.json` comment out above and use below instead
-RUN npm ci
-
-ENV NEXT_TELEMETRY_DISABLED 1
-
-# Add `ARG` instructions below if you need `NEXT_PUBLIC_` variables
-# then put the value on your fly.toml
-# Example:
-# ARG NEXT_PUBLIC_EXAMPLE="value here"
-
-# RUN yarn build
-
-# If using npm comment out above and use below instead
+RUN npm run check
 RUN npm run build
 
-# Production image, copy all the files and run next
-FROM node:18-alpine AS runner
+FROM node:24-alpine AS runner
+
 WORKDIR /app
+ENV NODE_ENV=production
+ENV PORT=8080
 
-ENV NODE_ENV production
-ENV NEXT_TELEMETRY_DISABLED 1
+RUN addgroup --system --gid 1001 app && adduser --system --uid 1001 app
 
-RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 nextjs
+COPY package.json package-lock.json ./
+RUN npm ci --omit=dev --ignore-scripts --no-audit --no-fund
+COPY --from=builder /app/build ./build
 
-COPY --from=builder /app ./
-
-USER nextjs
-
-# CMD ["yarn", "start"]
-
-# If using npm comment out above and use below instead
-CMD ["npm", "run", "start"]
+USER app
+CMD ["node", "build"]

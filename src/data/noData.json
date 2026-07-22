@@ -1,12 +1,12 @@
 [
-  {
-    "title": "No data available",
-    "items": [
-      {
-        "id": 1,
-        "position": 1,
-        "name": "Closed?"
-      }
-    ]
-  }
+    {
+        "title": "No data",
+        "items": [
+            {
+                "id": 1,
+                "position": 1,
+                "name": "No menu published"
+            }
+        ]
+    }
 ]
