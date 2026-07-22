@@ -74,6 +74,7 @@
     let filtersExpanded = $state(false);
     let requestNumber = 0;
     let activeController: AbortController | undefined;
+    let suppressedFilterClick: { filter: string; until: number } | undefined;
 
     const isFilterState = (value: unknown): value is FilterState =>
         value === "on" || value === "off" || value === "only";
@@ -284,6 +285,28 @@
         };
         filterStates = nextFilterStates;
         saveFilterStates(nextFilterStates);
+    };
+
+    const handleFilterClick = (filter: string): void => {
+        const suppression = suppressedFilterClick;
+        if (
+            suppression &&
+            suppression.filter === filter &&
+            Date.now() < suppression.until
+        ) {
+            suppressedFilterClick = undefined;
+            return;
+        }
+
+        suppressedFilterClick = undefined;
+        cycleFilter(filter);
+    };
+
+    const handleFilterDoubleClick = (filter: string): void => {
+        suppressedFilterClick = {
+            filter,
+            until: Date.now() + 350
+        };
     };
 
     const resetFilters = (): void => {
@@ -510,7 +533,8 @@
                             aria-label={`${filter}: ${filterStateLabel(state)}`}
                             title={`${filterStateLabel(state)} — click to cycle`}
                             data-state={state}
-                            onclick={() => cycleFilter(filter)}
+                            onclick={() => handleFilterClick(filter)}
+                            ondblclick={() => handleFilterDoubleClick(filter)}
                         >
                             {iconMap[filter] ?? filter}
                             <span class="filter-state" aria-hidden="true">
