@@ -255,8 +255,12 @@
             0
         )
     );
-    const hasActiveFilters = $derived(
-        Object.values(filterStates).some((state) => state !== "on")
+    const activeFilterCount = $derived(
+        Object.values(filterStates).filter((state) => state !== "on").length
+    );
+    const hasActiveFilters = $derived(activeFilterCount > 0);
+    const hasMenuFiltersApplied = $derived(
+        availableFilters.some((filter) => filterStates[filter] !== "on")
     );
 
     const filterState = (filter: string): FilterState =>
@@ -468,15 +472,33 @@
                     role="heading"
                     aria-level="2">Filters</span
                 >
-                <span class="filter-count">
+                <span class="filter-status">
+                    <span
+                        class="filter-status-dot"
+                        class:active={hasActiveFilters}
+                        aria-hidden="true"
+                    ></span>
                     {#if hasActiveFilters}
-                        {visibleItemCount} of {totalItemCount} items
+                        {activeFilterCount} active
+                        {#if hasMenuFiltersApplied}
+                            · {visibleItemCount} of {totalItemCount} items
+                        {:else}
+                            · no match in this menu
+                        {/if}
                     {:else}
-                        {totalItemCount} items
+                        No filters
                     {/if}
                 </span>
             </summary>
             <div class="menu-tools" aria-labelledby="filters-heading">
+                <button
+                    class="reset-filters"
+                    type="button"
+                    disabled={!hasActiveFilters}
+                    onclick={resetFilters}
+                >
+                    Reset filters
+                </button>
                 <div class="filter-list" aria-label="Dietary filters">
                     {#each availableFilters as filter (filter)}
                         {@const state = filterState(filter)}
@@ -501,14 +523,6 @@
                         </button>
                     {/each}
                 </div>
-                <button
-                    class="reset-filters"
-                    type="button"
-                    disabled={!hasActiveFilters}
-                    onclick={resetFilters}
-                >
-                    Reset filters
-                </button>
             </div>
         </details>
     {/if}
