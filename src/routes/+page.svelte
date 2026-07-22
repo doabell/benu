@@ -547,6 +547,10 @@
                         </button>
                     {/each}
                 </div>
+                <p class="filter-disclaimer">
+                    Dietary labels come from menu data and may be incomplete.
+                    Check with Dining Services about allergens.
+                </p>
             </div>
         </details>
     {/if}
