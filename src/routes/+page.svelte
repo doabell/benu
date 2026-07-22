@@ -31,6 +31,7 @@
     type FilterState = "on" | "off" | "only";
 
     const today = campusToday;
+    const filterStorageKey = "filterStates";
     const dietaryFilterOrder = [
         "Beef",
         "Halal",
@@ -72,6 +73,37 @@
     let currentTime = $state(new Date());
     let requestNumber = 0;
     let activeController: AbortController | undefined;
+
+    const isFilterState = (value: unknown): value is FilterState =>
+        value === "on" || value === "off" || value === "only";
+
+    const readFilterStates = (): Record<string, FilterState> => {
+        const stored = localStorage.getItem(filterStorageKey);
+        if (!stored) return {};
+
+        try {
+            const parsed: unknown = JSON.parse(stored);
+            if (
+                !parsed ||
+                typeof parsed !== "object" ||
+                Array.isArray(parsed)
+            ) {
+                return {};
+            }
+
+            return Object.fromEntries(
+                Object.entries(parsed).filter(([, state]) =>
+                    isFilterState(state)
+                )
+            ) as Record<string, FilterState>;
+        } catch {
+            return {};
+        }
+    };
+
+    const saveFilterStates = (states: Record<string, FilterState>): void => {
+        localStorage.setItem(filterStorageKey, JSON.stringify(states));
+    };
 
     const selectedHall = (): Hall =>
         halls.find((hall) => hall.id === place) ?? halls[0];
@@ -229,10 +261,17 @@
             off: "only",
             only: "on"
         };
-        filterStates = {
+        const nextFilterStates = {
             ...filterStates,
             [filter]: nextState[filterState(filter)]
         };
+        filterStates = nextFilterStates;
+        saveFilterStates(nextFilterStates);
+    };
+
+    const resetFilters = (): void => {
+        filterStates = {};
+        localStorage.removeItem(filterStorageKey);
     };
 
     const isEmptyResponse = (menu: MenuSection[]): boolean =>
@@ -268,6 +307,7 @@
         const hall =
             halls.find((candidate) => candidate.id === nextPlace) ?? halls[0];
         const storedMeal = localStorage.getItem("meal");
+        filterStates = readFilterStates();
 
         date =
             storedDate && isValidDateString(storedDate) ? storedDate : today();
@@ -401,7 +441,19 @@
 
     {#if menuStatus === "ready" && sections.length > 0 && availableFilters.length > 0}
         <section class="menu-tools" aria-labelledby="filters-heading">
-            <h2 id="filters-heading" class="filters-heading">Filters</h2>
+            <div class="filters-heading-row">
+                <h2 id="filters-heading" class="filters-heading">Filters</h2>
+                <button
+                    class="reset-filters"
+                    type="button"
+                    disabled={Object.values(filterStates).every(
+                        (state) => state === "on"
+                    )}
+                    onclick={resetFilters}
+                >
+                    Reset
+                </button>
+            </div>
             <div class="filter-list" aria-label="Dietary filters">
                 {#each availableFilters as filter (filter)}
                     {@const state = filterState(filter)}
