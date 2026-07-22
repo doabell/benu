@@ -35,6 +35,7 @@
     const dietaryFilterOrder = [
         "Beef",
         "Halal",
+        "Alcohol",
         "Dairy",
         "Pork",
         "Vegan",
@@ -218,7 +219,10 @@
                 section.items.flatMap((item) => item.iconNames ?? [])
             )
         );
-        return dietaryFilterOrder.filter((filter) => presentIcons.has(filter));
+        return dietaryFilterOrder.filter(
+            (filter) =>
+                presentIcons.has(filter) || filterStates[filter] !== "on"
+        );
     });
 
     const visibleSections = $derived.by(() =>
