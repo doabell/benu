@@ -178,6 +178,31 @@ h1 {
     white-space: nowrap;
 }
 
+.hall-tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+}
+
+.hall-icon {
+    display: block;
+    flex: 0 0 auto;
+    width: 1.35rem;
+    height: 1.35rem;
+}
+
+.meal-tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.meal-emoji {
+    display: inline-block;
+    font-size: 1.05rem;
+    line-height: 1;
+}
+
 .tab-button::after {
     position: absolute;
     right: 0.75rem;

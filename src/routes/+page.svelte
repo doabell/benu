@@ -11,6 +11,7 @@
         WifiOff
     } from "@lucide/svelte";
     import { toggleMode } from "mode-watcher";
+    import HallIcon from "$lib/components/HallIcon.svelte";
     import { iconMap, halls } from "$lib/menu/data";
     import {
         campusToday,
@@ -51,6 +52,11 @@
         "Tree Nuts",
         "Shellfish"
     ];
+    const mealEmojis: Record<string, string> = {
+        breakfast: "🍳",
+        lunch: "🥪",
+        dinner: "🍽️"
+    };
 
     const shiftDate = (dateStr: string, amount: number): string => {
         // eslint-disable-next-line svelte/prefer-svelte-reactivity
@@ -399,13 +405,14 @@
             >
                 {#each halls as hall (hall.id)}
                     <button
-                        class="tab-button"
+                        class="tab-button hall-tab"
                         class:active={place === hall.id}
                         type="button"
                         role="tab"
                         aria-selected={place === hall.id}
                         onclick={() => selectPlace(hall.id)}
                     >
+                        <HallIcon hallId={hall.id} class="hall-icon" />
                         {hall.name}
                     </button>
                 {/each}
@@ -449,13 +456,16 @@
             <div class="tab-list" role="tablist" aria-label="Select meal">
                 {#each selectedHall().options as option (option.id)}
                     <button
-                        class="tab-button"
+                        class="tab-button meal-tab"
                         class:active={meal === option.id}
                         type="button"
                         role="tab"
                         aria-selected={meal === option.id}
                         onclick={() => selectMeal(option.id)}
                     >
+                        <span class="meal-emoji" aria-hidden="true">
+                            {mealEmojis[option.id] ?? "🍽️"}
+                        </span>
                         {option.name}
                         {#if date === today() && availability.currentMeal === option.id}
                             <span class="current-label">now</span>

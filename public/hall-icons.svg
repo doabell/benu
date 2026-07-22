@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <defs>
+        <symbol id="proctor-dining-hall" viewBox="0 0 24 24">
+            <path fill="#aeb5b4" d="M1.5 10 5.5 6l4 4v9h-8z" />
+            <path fill="#627076" d="M1.5 10 5.5 6l4 4H1.5z" />
+            <path fill="#d9eef0" d="M3 11.5h5v3.5H3z" />
+            <path fill="#9fa9aa" d="M9 9.5 15 4l7 5.5V19H9z" />
+            <path fill="#596970" d="M9 9.5 15 4l7 5.5H9z" />
+            <path fill="#d9eef0" d="M12 10.75h6v6h-6z" />
+            <path
+                fill="#596970"
+                d="M14.75 10.75H16v6h-1.25zM12 16h6v1.25h-6z"
+            />
+            <path fill="#9b7658" d="M8.5 18h13.75v1.25H8.5z" />
+            <path fill="#668b65" d="M1 19.25h22v1.25H1zM3 20.5h18v1H3z" />
+        </symbol>
+
+        <symbol id="ross-dining-hall" viewBox="0 0 24 24">
+            <path fill="#9ca8aa" d="M1.75 6.5 5.75 4.75l4 1.75V20h-8z" />
+            <path fill="#62747a" d="m1.75 6.5 4-1.75 4 1.75h-8z" />
+            <path
+                fill="#d7e8e8"
+                d="M3.25 8h1.5v2h-1.5zm3 0h1.5v2h-1.5zm-3 3h1.5v2h-1.5zm3 0h1.5v2h-1.5zm-3 3h1.5v2h-1.5zm3 0h1.5v2h-1.5z"
+            />
+            <path
+                fill="#687f87"
+                d="M7.25 12.25c.9-2.8 3.2-4.5 6.25-4.5s5.35 1.7 6.25 4.5H22v7.75H7.25z"
+            />
+            <path
+                fill="#9acdd1"
+                d="M10.25 19.25v-5c0-1.7 1.1-2.9 2.75-2.9s2.75 1.2 2.75 2.9v5z"
+            />
+            <path fill="#c3e3e3" d="M16.75 14h3.5v5.25h-3.5z" />
+            <path
+                fill="#526a70"
+                d="M12.25 11.65h1.5v7.6h-1.5zm4.5 2.35H18v5.25h-1.25zM7 19.25h15v1.25H7zM1 20.5h22v1H1z"
+            />
+        </symbol>
+
+        <symbol id="atwater-dining-hall" viewBox="0 0 24 24">
+            <ellipse fill="#d6bea0" cx="12" cy="14.25" rx="10" ry="6.75" />
+            <path
+                fill="#9bcfd2"
+                d="M4 13.75c3.6 2.1 12.4 2.1 16 0v3.1c-3.6 2.1-12.4 2.1-16 0z"
+            />
+            <path
+                fill="#516d66"
+                d="M7 14.85h1.1v3.05H7zm3.45.7h1.1v3.05h-1.1zm3.45 0h1.1v3.05h-1.1zm3.45-.7h1.1v3.05h-1.1z"
+            />
+            <ellipse fill="#5f8662" cx="12" cy="8.8" rx="10" ry="4.5" />
+            <path
+                fill="#a1bb70"
+                d="M4.5 8.5c1-1.6 2.1-2.2 3.2-1.7.7.3 1.2.9 1.7 1.7 1-1.6 2.1-2.2 3.2-1.7.7.3 1.2.9 1.7 1.7 1-1.6 2.1-2.2 3.2-1.7.7.3 1.2.9 1.7 1.7z"
+            />
+            <path fill="#47674f" d="M2 20h20v1H2z" />
+        </symbol>
+    </defs>
+</svg>
