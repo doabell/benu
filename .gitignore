@@ -1,47 +1,32 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
-
-# dev db
+# Local data
 benu.db
 
-# Service workers
+# SvelteKit and generated PWA output
+/.svelte-kit/
+/build/
 public/workbox-*.js
 public/workbox-*.js.map
 public/sw.js
 public/sw.js.map
 
-# dependencies
+# Dependencies
 /node_modules
 /.pnp
 .pnp.js
 
-# eslint
+# Tooling and tests
 .eslintcache
-
-# testing
 /coverage
+*.tsbuildinfo
 
-# next.js
-/.next/
-/out/
-
-# production
-/build
-
-# misc
+# Miscellaneous
 .DS_Store
 *.pem
-
-# debug
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# local env files
+# Local environment and provider metadata
 .env*.local
-
-# vercel
 .vercel
-
-# typescript
-*.tsbuildinfo
-next-env.d.ts
+.wrangler

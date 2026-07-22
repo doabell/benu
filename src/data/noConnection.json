@@ -1,22 +1,22 @@
 [
-  {
-    "title": "Error loading menu",
-    "items": [
-      {
-        "id": 1,
-        "position": 1,
-        "name": "Check your Internet connection"
-      },
-      {
-        "id": 2,
-        "position": 2,
-        "name": "Or maybe Nutrislice or Vercel is down"
-      },
-      {
-        "id": 3,
-        "position": 3,
-        "name": "Yes, Nutrislice was down when I wrote this"
-      }
-    ]
-  }
+    {
+        "title": "Menu unavailable",
+        "items": [
+            {
+                "id": 1,
+                "position": 1,
+                "name": "Check your connection"
+            },
+            {
+                "id": 2,
+                "position": 2,
+                "name": "The menu service may be down"
+            },
+            {
+                "id": 3,
+                "position": 3,
+                "name": "Try again shortly"
+            }
+        ]
+    }
 ]

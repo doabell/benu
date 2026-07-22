@@ -1,52 +1,52 @@
 [
-  {
-    "id": "proctor-dining-hall",
-    "name": "Proctor",
-    "options": [
-      {
-        "id": "breakfast",
-        "name": "Breakfast"
-      },
-      {
-        "id": "lunch",
-        "name": "Lunch"
-      },
-      {
-        "id": "dinner",
-        "name": "Dinner"
-      }
-    ]
-  },
-  {
-    "id": "ross-dining-hall",
-    "name": "Ross",
-    "options": [
-      {
-        "id": "breakfast",
-        "name": "Breakfast"
-      },
-      {
-        "id": "lunch",
-        "name": "Lunch"
-      },
-      {
-        "id": "dinner",
-        "name": "Dinner"
-      }
-    ]
-  },
-  {
-    "id": "atwater-dining-hall",
-    "name": "Atwater",
-    "options": [
-      {
-        "id": "lunch",
-        "name": "Lunch"
-      },
-      {
-        "id": "dinner",
-        "name": "Dinner"
-      }
-    ]
-  }
+    {
+        "id": "proctor-dining-hall",
+        "name": "Proctor",
+        "options": [
+            {
+                "id": "breakfast",
+                "name": "Breakfast"
+            },
+            {
+                "id": "lunch",
+                "name": "Lunch"
+            },
+            {
+                "id": "dinner",
+                "name": "Dinner"
+            }
+        ]
+    },
+    {
+        "id": "ross-dining-hall",
+        "name": "Ross",
+        "options": [
+            {
+                "id": "breakfast",
+                "name": "Breakfast"
+            },
+            {
+                "id": "lunch",
+                "name": "Lunch"
+            },
+            {
+                "id": "dinner",
+                "name": "Dinner"
+            }
+        ]
+    },
+    {
+        "id": "atwater-dining-hall",
+        "name": "Atwater",
+        "options": [
+            {
+                "id": "lunch",
+                "name": "Lunch"
+            },
+            {
+                "id": "dinner",
+                "name": "Dinner"
+            }
+        ]
+    }
 ]

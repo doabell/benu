@@ -1,4 +1,4 @@
-# fly.toml app configuration file generated for proud-star-747 on 2023-04-20T09:25:32-04:00
+# fly.toml app configuration for the optional Node adapter deployment.
 #
 # See https://fly.io/docs/reference/configuration/ for information about how to use this file.
 #
@@ -9,12 +9,9 @@ kill_timeout = 5
 primary_region = "bos"
 processes = []
 
-[build]
-  [build.args]
-    NEXT_PUBLIC_EXAMPLE = "Value goes here"
-
 [env]
   PORT = "8080"
+  SVELTE_ADAPTER = "node"
 
 [experimental]
   auto_rollback = true
