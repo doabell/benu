@@ -3,6 +3,18 @@
     <head>
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta name="color-scheme" content="light dark" />
+        <script>
+            try {
+                const theme = localStorage.getItem("mode-watcher-mode");
+                if (theme === "light" || theme === "dark") {
+                    document.querySelector(
+                        'meta[name="color-scheme"]'
+                    ).content = theme;
+                }
+            } catch {}
+        </script>
+        <meta name="theme-color" content="#ffffff" />
         %sveltekit.head%
     </head>
     <body data-sveltekit-preload-data="hover">

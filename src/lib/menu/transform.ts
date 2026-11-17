@@ -36,7 +36,7 @@ export function transformItems(items: ApiMenuItem[]): MenuSection[] {
     return sections
         .map((section) => ({
             ...section,
-            items: [...section.items].sort(
+            items: section.items.toSorted(
                 (first, second) => first.position - second.position
             )
         }))

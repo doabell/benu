@@ -1,11 +1,33 @@
-@import "@fontsource/roboto/latin-300.css";
-@import "@fontsource/roboto/latin-400.css";
-@import "@fontsource/roboto/latin-500.css";
-@import "@fontsource/roboto/latin-700.css";
+@font-face {
+    font-family: Roboto;
+    font-style: normal;
+    font-weight: 400;
+    font-display: swap;
+    src: url("@fontsource/roboto/files/roboto-latin-400-normal.woff2")
+        format("woff2");
+}
+
+@font-face {
+    font-family: Roboto;
+    font-style: normal;
+    font-weight: 500;
+    font-display: swap;
+    src: url("@fontsource/roboto/files/roboto-latin-500-normal.woff2")
+        format("woff2");
+}
+
+@font-face {
+    font-family: Roboto;
+    font-style: normal;
+    font-weight: 700;
+    font-display: swap;
+    src: url("@fontsource/roboto/files/roboto-latin-700-normal.woff2")
+        format("woff2");
+}
 
 :root {
     font-family: Roboto, Helvetica, Arial, sans-serif;
-    color-scheme: light;
+    color-scheme: light dark;
     color: var(--text);
     background: var(--background);
     font-synthesis: none;
@@ -20,12 +42,18 @@
     --accent-strong: #115293;
     --accent-contrast: #ffffff;
     --success: #5f8662;
+    --light-control-display: none;
+    --dark-control-display: inline-flex;
     --fab-shadow:
         0 3px 5px -1px rgb(0 0 0 / 0.2), 0 6px 10px 0 rgb(0 0 0 / 0.14),
         0 1px 18px 0 rgb(0 0 0 / 0.12);
 }
 
-:root.dark {
+:root:has(> head > meta[name="color-scheme"][content="light"]) {
+    color-scheme: light;
+}
+
+:root:has(> head > meta[name="color-scheme"][content="dark"]) {
     color-scheme: dark;
     color: var(--text);
     background: var(--background);
@@ -39,9 +67,32 @@
     --accent-strong: #c2e2ff;
     --accent-contrast: #0b1928;
     --success: #9cc69f;
+    --light-control-display: inline-flex;
+    --dark-control-display: none;
     --fab-shadow:
         0 3px 5px -1px rgb(0 0 0 / 0.35), 0 6px 10px 0 rgb(0 0 0 / 0.28),
         0 1px 18px 0 rgb(0 0 0 / 0.24);
+}
+
+/* CSS follows the OS even before JavaScript loads or when storage is denied. */
+@media (prefers-color-scheme: dark) {
+    :root:not(:has(> head > meta[name="color-scheme"][content="light"])) {
+        --background: #121212;
+        --surface: #121212;
+        --surface-muted: rgb(255 255 255 / 0.08);
+        --border: rgb(255 255 255 / 0.18);
+        --text: #ffffff;
+        --muted: rgb(255 255 255 / 0.7);
+        --accent: #90caf9;
+        --accent-strong: #c2e2ff;
+        --accent-contrast: #0b1928;
+        --success: #9cc69f;
+        --light-control-display: inline-flex;
+        --dark-control-display: none;
+        --fab-shadow:
+            0 3px 5px -1px rgb(0 0 0 / 0.35), 0 6px 10px 0 rgb(0 0 0 / 0.28),
+            0 1px 18px 0 rgb(0 0 0 / 0.24);
+    }
 }
 
 * {
@@ -93,7 +144,23 @@ input {
 button:focus-visible,
 a:focus-visible,
 input:focus-visible {
-    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 30%, transparent);
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
+}
+
+@media (forced-colors: active) {
+    button:focus-visible,
+    a:focus-visible,
+    input:focus-visible {
+        outline-color: Highlight;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    button,
+    a {
+        transition-property: color, background-color, opacity;
+    }
 }
 
 a {
@@ -473,12 +540,6 @@ input[type="date"] {
     opacity: 0.7;
 }
 
-.filter-state {
-    margin-left: 0.2rem;
-    color: var(--muted);
-    font-size: 0.7rem;
-}
-
 .menu-card {
     min-height: 18rem;
     padding: 0.75rem 0 0;
@@ -506,7 +567,9 @@ input[type="date"] {
     display: block;
     width: 1.75rem;
     height: 1.75rem;
-    animation: loading-breathe 1.4s ease-in-out infinite;
+    @media (prefers-reduced-motion: no-preference) {
+        animation: loading-breathe 1.4s ease-in-out 3;
+    }
 }
 
 .loading-dots {
@@ -514,7 +577,6 @@ input[type="date"] {
     width: 1.5rem;
     overflow: hidden;
     letter-spacing: 0.15em;
-    animation: loading-dots 1.4s steps(4, end) infinite;
 }
 
 .loading-track {
@@ -540,7 +602,9 @@ input[type="date"] {
         var(--accent),
         color-mix(in srgb, var(--accent) 65%, transparent)
     );
-    animation: loading 1.4s ease-in-out infinite;
+    @media (prefers-reduced-motion: no-preference) {
+        animation: loading 1.4s ease-in-out 3;
+    }
 }
 
 .menu-section + .menu-section {
@@ -754,15 +818,11 @@ footer a {
 }
 
 .light-mode-control {
-    display: none;
+    display: var(--light-control-display);
 }
 
-:root.dark .light-mode-control {
-    display: inline-flex;
-}
-
-:root.dark .dark-mode-control {
-    display: none;
+.dark-mode-control {
+    display: var(--dark-control-display);
 }
 
 .sr-only {
@@ -771,7 +831,7 @@ footer a {
     height: 1px;
     padding: 0;
     overflow: hidden;
-    clip: rect(0, 0, 0, 0);
+    clip-path: inset(50%);
     white-space: nowrap;
     border: 0;
 }
@@ -797,22 +857,6 @@ footer a {
     50% {
         opacity: 1;
         transform: scale(1);
-    }
-}
-
-@keyframes loading-dots {
-    0%,
-    20% {
-        width: 0;
-    }
-
-    50%,
-    70% {
-        width: 0.75rem;
-    }
-
-    100% {
-        width: 1.5rem;
     }
 }
 

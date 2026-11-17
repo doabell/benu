@@ -1,10 +1,18 @@
 {
+    "$schema": "./node_modules/wrangler/config-schema.json",
     "name": "benu",
     "main": ".svelte-kit/cloudflare/_worker.js",
     "compatibility_date": "2026-07-21",
     "compatibility_flags": ["nodejs_als"],
+    "kv_namespaces": [{ "binding": "MENU_SNAPSHOTS" }],
     "assets": {
         "binding": "ASSETS",
         "directory": ".svelte-kit/cloudflare"
+    },
+    "env": {
+        "preview": {
+            "name": "benu-preview",
+            "kv_namespaces": [{ "binding": "MENU_SNAPSHOTS" }]
+        }
     }
 }

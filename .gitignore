@@ -17,6 +17,8 @@ public/sw.js.map
 # Tooling and tests
 .eslintcache
 /coverage
+/playwright-report
+/test-results
 *.tsbuildinfo
 
 # Miscellaneous

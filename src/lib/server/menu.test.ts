@@ -1,149 +1,97 @@
-import { describe, expect, it } from "vitest";
-import { fetchExternalMenu } from "./menu";
+import { describe, expect, it, vi } from "vitest";
+import { fetchWeekMenu } from "./menu";
+import { menuWeek } from "../../../tests/menu-fixtures";
 
-describe("fetchExternalMenu", () => {
-    it("includes the venue in every upstream request", async () => {
-        const urls: string[] = [];
-        const fetcher: typeof fetch = async (input) => {
-            urls.push(String(input));
-            return new Response(
-                JSON.stringify({
-                    days: [{ date: "2026-07-21", menu_items: [] }]
-                }),
-                { status: 200, headers: { "Content-Type": "application/json" } }
-            );
-        };
+const query = {
+    dateStr: "2026-07-21",
+    place: "proctor-dining-hall",
+    meal: "lunch"
+};
 
-        await fetchExternalMenu(
-            {
-                dateStr: "2026-07-21",
-                place: "proctor-dining-hall",
-                meal: "lunch"
-            },
-            fetcher
+describe("weekly upstream menus", () => {
+    it("transforms all seven days and keeps venue and meal in the URL", async () => {
+        const fetcher = vi.fn(async () => Response.json(menuWeek()));
+        const result = await fetchWeekMenu(query, fetcher);
+        expect(Object.keys(result.days)).toHaveLength(7);
+        expect(result.days["2026-07-22"].sections[0].items[0].name).toBe(
+            "Soup"
         );
-        await fetchExternalMenu(
-            {
-                dateStr: "2026-07-21",
-                place: "ross-dining-hall",
-                meal: "lunch"
-            },
-            fetcher
-        );
-
-        expect(urls[0]).toContain("/school/proctor-dining-hall/");
-        expect(urls[1]).toContain("/school/ross-dining-hall/");
-        expect(urls[0]).not.toBe(urls[1]);
-    });
-
-    it("distinguishes a closed day from an unpublished date", async () => {
-        let days = [{ date: "2026-07-21", menu_items: [] }];
-        const fetcher: typeof fetch = async () =>
-            new Response(JSON.stringify({ days }), { status: 200 });
-
-        const closed = await fetchExternalMenu(
-            {
-                dateStr: "2026-07-21",
-                place: "proctor-dining-hall",
-                meal: "lunch"
-            },
-            fetcher
-        );
-        days = [];
-        const unavailable = await fetchExternalMenu(
-            {
-                dateStr: "2026-08-21",
-                place: "proctor-dining-hall",
-                meal: "lunch"
-            },
-            fetcher
-        );
-
-        expect(closed.result).toBe("closed");
-        expect(closed.hasDataElsewhere).toBe(false);
-        expect(unavailable.result).toBe("unavailable");
-    });
-
-    it("uses another hall with data to identify a closed hall", async () => {
-        const requestedUrls: string[] = [];
-        const fetcher: typeof fetch = async (input) => {
-            const url = String(input);
-            requestedUrls.push(url);
-            const rossHasData = url.includes("/school/ross-dining-hall/");
-
-            return new Response(
-                JSON.stringify({
-                    days: [
-                        {
-                            date: "2026-07-21",
-                            menu_items: rossHasData
-                                ? [
-                                      {
-                                          id: 1,
-                                          position: 1,
-                                          is_section_title: true,
-                                          text: "Main",
-                                          menu_id: 1
-                                      },
-                                      {
-                                          id: 2,
-                                          position: 2,
-                                          is_section_title: false,
-                                          text: "Soup",
-                                          menu_id: 1
-                                      }
-                                  ]
-                                : []
-                        }
-                    ]
-                }),
-                { status: 200 }
-            );
-        };
-
-        const result = await fetchExternalMenu(
-            {
-                dateStr: "2026-07-21",
-                place: "proctor-dining-hall",
-                meal: "lunch"
-            },
-            fetcher
-        );
-
-        expect(result.result).toBe("closed");
-        expect(result.hasDataElsewhere).toBe(true);
-        expect(requestedUrls).toEqual(
+        expect(fetcher.mock.calls[0]).toEqual(
             expect.arrayContaining([
-                expect.stringContaining("/school/proctor-dining-hall/"),
-                expect.stringContaining("/school/ross-dining-hall/")
+                expect.stringContaining(
+                    "/school/proctor-dining-hall/menu-type/lunch/"
+                )
             ])
         );
     });
 
-    it("treats unpublished days as unavailable rather than closed", async () => {
-        const fetcher: typeof fetch = async () =>
-            new Response(
-                JSON.stringify({
-                    days: [
-                        {
-                            date: "2026-07-21",
-                            has_unpublished_menus: true,
-                            menu_items: []
-                        }
-                    ]
-                }),
-                { status: 200 }
-            );
-
-        const result = await fetchExternalMenu(
-            {
-                dateStr: "2026-07-21",
-                place: "proctor-dining-hall",
-                meal: "lunch"
-            },
-            fetcher
+    it("distinguishes closed, unpublished, and missing item arrays", async () => {
+        const result = await fetchWeekMenu(query, async () =>
+            Response.json({
+                days: [
+                    { date: "2026-07-21", menu_items: [] },
+                    {
+                        date: "2026-07-22",
+                        menu_items: [],
+                        has_unpublished_menus: true
+                    },
+                    { date: "2026-07-23" }
+                ]
+            })
         );
+        expect(result.days["2026-07-21"].result).toBe("closed");
+        expect(result.days["2026-07-22"].result).toBe("unavailable");
+        expect(result.days["2026-07-23"].result).toBe("unavailable");
+    });
 
-        expect(result.result).toBe("unavailable");
+    it.each([
+        { days: "not a week" },
+        { days: [{ date: "2026-07-30", menu_items: [] }] },
+        { days: [{ date: "2026-07-21", menu_items: [{ bad: true }] }] },
+        {
+            days: [
+                { date: "2026-07-21", menu_items: [] },
+                { date: "2026-07-21", menu_items: [] }
+            ]
+        }
+    ])(
+        "rejects malformed data and invalid day boundaries: %j",
+        async (value) => {
+            await expect(
+                fetchWeekMenu(query, async () => Response.json(value))
+            ).rejects.toThrow();
+        }
+    );
+
+    it("rejects upstream failures", async () => {
+        await expect(
+            fetchWeekMenu(
+                query,
+                async () => new Response(null, { status: 503 })
+            )
+        ).rejects.toThrow("503");
+    });
+
+    it("accepts Nutrislice closure notes with null IDs", async () => {
+        const result = await fetchWeekMenu(query, async () =>
+            Response.json({
+                days: [
+                    {
+                        date: "2026-07-25",
+                        menu_items: [
+                            {
+                                id: null,
+                                position: 0,
+                                is_section_title: false,
+                                text: "Thanksgiving Break",
+                                food: null,
+                                menu_id: 1
+                            }
+                        ]
+                    }
+                ]
+            })
+        );
+        expect(result.days["2026-07-25"].result).toBe("closed");
     });
 });

@@ -1,8 +1,22 @@
 <script lang="ts">
-    import { ModeWatcher } from "mode-watcher";
+    import { onMount } from "svelte";
+    import regularFont from "@fontsource/roboto/files/roboto-latin-400-normal.woff2?url";
+    import { watchTheme } from "$lib/theme";
     import "../app.css";
 
     let { children } = $props();
+
+    onMount(() => {
+        const cleanupTheme = watchTheme();
+        if (import.meta.env.PROD && "serviceWorker" in navigator) {
+            // Register on each visit; the browser checks the script for changes.
+            // Updates take control without forcing the open menu to reload.
+            void navigator.serviceWorker
+                .register("/sw.js", { updateViaCache: "none" })
+                .catch(() => undefined);
+        }
+        return cleanupTheme;
+    });
 </script>
 
 <svelte:head>
@@ -22,8 +36,14 @@
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
     <link rel="mask-icon" href="/safari-pinned-tab.svg" color="#1976d2" />
-    <link rel="manifest" href="/site.webmanifest" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link
+        rel="preload"
+        href={regularFont}
+        as="font"
+        type="font/woff2"
+        crossorigin="anonymous"
+    />
 </svelte:head>
 
-<ModeWatcher themeColors={{ dark: "#121212", light: "#ffffff" }} />
 {@render children()}

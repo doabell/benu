@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { campusToday, getMealStatus, getNoDataReason } from "./schedule";
+import {
+    campusToday,
+    getMealStatus,
+    getNoDataReason,
+    getSuggestedMeal
+} from "./schedule";
 
 describe("dining schedule", () => {
     it("uses campus time to identify an open meal", () => {
@@ -49,18 +54,41 @@ describe("dining schedule", () => {
     });
 
     it("distinguishes present, future, and past empty menus", () => {
-        expect(getNoDataReason("2026-01-13", "2026-01-13")).toBe("Closed?");
+        expect(getNoDataReason("2026-01-13", "2026-01-13")).toBe(
+            "No menu has been published for this meal."
+        );
         expect(getNoDataReason("2026-01-14", "2026-01-13")).toBe(
-            "Not published yet?"
+            "This menu has not been published yet."
         );
         expect(getNoDataReason("2026-01-12", "2026-01-13")).toBe(
-            "Too far away?"
+            "No published menu is available for this date."
         );
     });
 
     it("uses another hall's data as a closed-day hint", () => {
         expect(getNoDataReason("2026-01-14", "2026-01-13", true)).toBe(
-            "Closed?"
+            "Other halls have menus for this meal."
         );
+    });
+
+    it("suggests the current or next meal in campus time", () => {
+        expect(
+            getSuggestedMeal(
+                "proctor-dining-hall",
+                new Date("2026-01-13T20:00:00Z")
+            )
+        ).toBe("dinner");
+        expect(
+            getSuggestedMeal(
+                "proctor-dining-hall",
+                new Date("2026-01-13T17:00:00Z")
+            )
+        ).toBe("lunch");
+        expect(
+            getSuggestedMeal(
+                "atwater-dining-hall",
+                new Date("2026-01-11T17:00:00Z")
+            )
+        ).toBe("lunch");
     });
 });

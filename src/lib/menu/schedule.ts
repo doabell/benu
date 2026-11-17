@@ -65,13 +65,25 @@ const schedules: Record<string, HallSchedule> = {
     }
 };
 
+const timeFormatter = new Intl.DateTimeFormat("en-US", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+    timeZone: CAMPUS_TIME_ZONE
+});
+const weekdayFormatter = new Intl.DateTimeFormat("en-US", {
+    weekday: "short",
+    timeZone: CAMPUS_TIME_ZONE
+});
+const dateFormatter = new Intl.DateTimeFormat("en-US", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    timeZone: CAMPUS_TIME_ZONE
+});
+
 const getTimeParts = (date: Date): { hour: number; minute: number } => {
-    const parts = new Intl.DateTimeFormat("en-US", {
-        hour: "2-digit",
-        minute: "2-digit",
-        hour12: false,
-        timeZone: CAMPUS_TIME_ZONE
-    }).formatToParts(date);
+    const parts = timeFormatter.formatToParts(date);
     const hourPart = Number(parts.find((part) => part.type === "hour")?.value);
     const minutePart = Number(
         parts.find((part) => part.type === "minute")?.value
@@ -81,10 +93,7 @@ const getTimeParts = (date: Date): { hour: number; minute: number } => {
 };
 
 const getWeekday = (date: Date): number => {
-    const weekday = new Intl.DateTimeFormat("en-US", {
-        weekday: "short",
-        timeZone: CAMPUS_TIME_ZONE
-    }).format(date);
+    const weekday = weekdayFormatter.format(date);
     return ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].indexOf(weekday);
 };
 
@@ -136,27 +145,36 @@ const openingLabel = (
 };
 
 export const campusToday = (date = new Date()): string => {
-    const parts = new Intl.DateTimeFormat("en-US", {
-        year: "numeric",
-        month: "2-digit",
-        day: "2-digit",
-        timeZone: CAMPUS_TIME_ZONE
-    }).formatToParts(date);
+    const parts = dateFormatter.formatToParts(date);
     const year = parts.find((part) => part.type === "year")?.value;
     const month = parts.find((part) => part.type === "month")?.value;
     const day = parts.find((part) => part.type === "day")?.value;
     return `${year}-${month}-${day}`;
 };
 
+export function getSuggestedMeal(
+    place: string,
+    date = new Date()
+): string | undefined {
+    const current = getMealStatus(place, date).currentMeal;
+    if (current) return current;
+    const schedule = schedules[place];
+    if (!schedule) return;
+    const time = getTimeParts(date);
+    return nextOpening(schedule, getWeekday(date), time.hour * 60 + time.minute)
+        ?.mealWindow.meal;
+}
+
 export const getNoDataReason = (
     dateStr: string,
     campusDate = campusToday(),
     hasDataElsewhere = false
 ): string => {
-    if (hasDataElsewhere) return "Closed?";
-    if (dateStr > campusDate) return "Not published yet?";
-    if (dateStr < campusDate) return "Too far away?";
-    return "Closed?";
+    if (hasDataElsewhere) return "Other halls have menus for this meal.";
+    if (dateStr > campusDate) return "This menu has not been published yet.";
+    if (dateStr < campusDate)
+        return "No published menu is available for this date.";
+    return "No menu has been published for this meal.";
 };
 
 export const getMealStatus = (place: string, date = new Date()): MealStatus => {

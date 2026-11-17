@@ -1,0 +1,6 @@
+{
+    "refreshHours": 6,
+    "browserCacheHours": 6,
+    "offlineHours": 24,
+    "prefetchWeeks": 2
+}

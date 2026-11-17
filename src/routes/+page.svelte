@@ -10,15 +10,29 @@
         Sun,
         WifiOff
     } from "@lucide/svelte";
-    import { toggleMode } from "mode-watcher";
+    import { toggleMode } from "$lib/theme";
     import HallIcon from "$lib/components/HallIcon.svelte";
     import { iconMap, halls } from "$lib/menu/data";
     import {
         campusToday,
         getMealStatus,
+        getSuggestedMeal,
         getNoDataReason
     } from "$lib/menu/schedule";
     import { isValidDateString } from "$lib/menu/validation";
+    import { shiftDate } from "$lib/menu/dates";
+    import { menuPolicy, MENU_CACHE_NAME } from "$lib/menu/policy";
+    import {
+        menuRequestUrl,
+        readMenuResponse,
+        readSavedMenu,
+        saveUncontrolledMenu,
+        readPreference,
+        writePreference,
+        type MenuData
+    } from "$lib/menu/client";
+    import { pushState } from "$app/navigation";
+    import { resolve } from "$app/paths";
     import type { Hall, MenuSection } from "$lib/menu/types";
 
     interface Selection {
@@ -58,16 +72,6 @@
         dinner: "🍽️"
     };
 
-    const shiftDate = (dateStr: string, amount: number): string => {
-        // eslint-disable-next-line svelte/prefer-svelte-reactivity
-        const date = new Date(`${dateStr}T00:00:00`);
-        date.setDate(date.getDate() + amount);
-        const year = date.getFullYear();
-        const month = String(date.getMonth() + 1).padStart(2, "0");
-        const day = String(date.getDate()).padStart(2, "0");
-        return `${year}-${month}-${day}`;
-    };
-
     let date = $state(today());
     let place = $state(halls[0].id);
     let meal = $state(halls[0].options[0].id);
@@ -82,13 +86,15 @@
     let filtersExpanded = $state(false);
     let requestNumber = 0;
     let activeController: AbortController | undefined;
-    let suppressedFilterClick: { filter: string; until: number } | undefined;
+    let displayedUrl = "";
+    let menuFetchedAt = 0;
+    let loadingTimer: number | undefined;
 
     const isFilterState = (value: unknown): value is FilterState =>
         value === "on" || value === "off" || value === "only";
 
     const readFilterStates = (): Record<string, FilterState> => {
-        const stored = localStorage.getItem(filterStorageKey);
+        const stored = readPreference(filterStorageKey);
         if (!stored) return {};
 
         try {
@@ -112,16 +118,44 @@
     };
 
     const saveFilterStates = (states: Record<string, FilterState>): void => {
-        localStorage.setItem(filterStorageKey, JSON.stringify(states));
+        writePreference(filterStorageKey, JSON.stringify(states));
     };
 
     const selectedHall = (): Hall =>
         halls.find((hall) => hall.id === place) ?? halls[0];
 
+    const rememberSelection = (selection: Selection): void => {
+        writePreference("place", selection.place);
+        writePreference("meal", selection.meal);
+        writePreference("selectionDay", today());
+    };
+
     const saveSelection = (selection: Selection): void => {
-        localStorage.setItem("date", selection.dateStr);
-        localStorage.setItem("place", selection.place);
-        localStorage.setItem("meal", selection.meal);
+        rememberSelection(selection);
+        const url = new URL(window.location.href);
+        for (const [key, value] of Object.entries(selection))
+            url.searchParams.set(key, value);
+        if (url.href !== window.location.href) {
+            pushState(
+                resolve(`/?${url.searchParams.toString()}${url.hash}`),
+                {}
+            );
+        }
+    };
+
+    const displayMenu = (data: MenuData, url: string): void => {
+        displayedUrl = url;
+        menuFetchedAt = data.fetchedAt;
+        hasDataElsewhere = data.hasDataElsewhere;
+        sections = data.result === "ok" ? data.sections : [];
+        menuStatus =
+            data.result === "ok"
+                ? isEmptyResponse(data.sections)
+                    ? "unavailable"
+                    : "ready"
+                : data.result;
+        loading = false;
+        window.clearTimeout(loadingTimer);
     };
 
     const loadMenu = async (selection: Selection): Promise<void> => {
@@ -130,40 +164,43 @@
         const currentRequest = ++requestNumber;
         activeController?.abort();
         activeController = new AbortController();
-        loading = true;
-        menuStatus = "loading";
+        window.clearTimeout(loadingTimer);
+        loading = false;
         errorMessage = "";
-        sections = [];
-        hasDataElsewhere = false;
-
-        const params = new URLSearchParams({
-            dateStr: selection.dateStr,
-            place: selection.place,
-            meal: selection.meal
-        });
+        const url = menuRequestUrl(selection);
+        let hasSaved =
+            displayedUrl === url &&
+            Date.now() - menuFetchedAt < menuPolicy.offlineSeconds * 1000;
+        if (!hasSaved) {
+            sections = [];
+            menuStatus = "idle";
+            hasDataElsewhere = false;
+        }
+        const saved = await readSavedMenu(url);
+        if (currentRequest !== requestNumber) return;
+        if (saved) {
+            displayMenu(saved, url);
+            hasSaved = true;
+        }
+        if (!hasSaved)
+            loadingTimer = window.setTimeout(() => {
+                if (currentRequest === requestNumber) {
+                    loading = true;
+                    menuStatus = "loading";
+                }
+            }, 150);
 
         try {
-            const response = await fetch(`/api/menu?${params.toString()}`, {
+            const response = await fetch(url, {
                 signal: activeController.signal
             });
 
-            if (!response.ok) throw new Error("Menu request failed");
-            const data = (await response.json()) as MenuSection[];
+            const copy = response.clone();
+            const data = await readMenuResponse(response);
 
             if (currentRequest === requestNumber) {
-                const result = response.headers.get("X-Menu-Result");
-                hasDataElsewhere =
-                    response.headers.get("X-Menu-Data-Elsewhere") === "true";
-                if (result === "closed" || result === "unavailable") {
-                    sections = [];
-                    menuStatus = result;
-                } else if (isEmptyResponse(data)) {
-                    sections = [];
-                    menuStatus = "unavailable";
-                } else {
-                    sections = data;
-                    menuStatus = "ready";
-                }
+                displayMenu(data, url);
+                void saveUncontrolledMenu(url, copy);
             }
         } catch (error) {
             if (
@@ -173,13 +210,17 @@
                 return;
             }
 
+            if (hasSaved) return;
             sections = [];
             menuStatus = "error";
             errorMessage = online
                 ? "Try again shortly."
                 : "Not saved for offline use.";
         } finally {
-            if (currentRequest === requestNumber) loading = false;
+            if (currentRequest === requestNumber) {
+                window.clearTimeout(loadingTimer);
+                loading = false;
+            }
         }
     };
 
@@ -239,19 +280,18 @@
         );
     });
 
+    const onlyFilters = $derived(
+        availableFilters.filter((filter) => filterStates[filter] === "only")
+    );
+    const offFilters = $derived(
+        availableFilters.filter((filter) => filterStates[filter] === "off")
+    );
     const visibleSections = $derived.by(() =>
         sections
             .map((section) => ({
                 ...section,
                 items: section.items.filter((item) => {
                     const iconNames = item.iconNames ?? [];
-                    const onlyFilters = availableFilters.filter(
-                        (filter) => filterStates[filter] === "only"
-                    );
-                    const offFilters = availableFilters.filter(
-                        (filter) => filterStates[filter] === "off"
-                    );
-
                     return (
                         onlyFilters.every((filter) =>
                             iconNames.includes(filter)
@@ -305,31 +345,9 @@
         saveFilterStates(nextFilterStates);
     };
 
-    const handleFilterClick = (filter: string): void => {
-        const suppression = suppressedFilterClick;
-        if (
-            suppression &&
-            suppression.filter === filter &&
-            Date.now() < suppression.until
-        ) {
-            suppressedFilterClick = undefined;
-            return;
-        }
-
-        suppressedFilterClick = undefined;
-        cycleFilter(filter);
-    };
-
-    const handleFilterDoubleClick = (filter: string): void => {
-        suppressedFilterClick = {
-            filter,
-            until: Date.now() + 350
-        };
-    };
-
     const resetFilters = (): void => {
         filterStates = {};
-        localStorage.removeItem(filterStorageKey);
+        writePreference(filterStorageKey);
     };
 
     const isEmptyResponse = (menu: MenuSection[]): boolean =>
@@ -344,7 +362,7 @@
         };
         const handleOnline = (): void => {
             online = true;
-            if (menuStatus === "error") void loadMenu(currentSelection());
+            void loadMenu(currentSelection());
         };
         const handleOffline = (): void => {
             online = false;
@@ -357,30 +375,92 @@
         window.addEventListener("online", handleOnline);
         window.addEventListener("offline", handleOffline);
 
-        const storedDate = localStorage.getItem("date");
-        const storedPlace = localStorage.getItem("place");
+        const params = new URL(window.location.href).searchParams;
+        const storedPlace = params.get("place") ?? readPreference("place");
         const nextPlace = halls.some((hall) => hall.id === storedPlace)
             ? storedPlace!
             : halls[0].id;
         const hall =
             halls.find((candidate) => candidate.id === nextPlace) ?? halls[0];
-        const storedMeal = localStorage.getItem("meal");
+        const storedMeal =
+            params.get("meal") ??
+            (readPreference("selectionDay") === today()
+                ? readPreference("meal")
+                : null);
         filterStates = readFilterStates();
         filtersExpanded = window.matchMedia("(min-width: 601px)").matches;
 
+        const requestedDate = params.get("dateStr");
         date =
-            storedDate && isValidDateString(storedDate) ? storedDate : today();
+            requestedDate && isValidDateString(requestedDate)
+                ? requestedDate
+                : today();
         place = nextPlace;
         meal = hall.options.some((option) => option.id === storedMeal)
             ? storedMeal!
-            : hall.options[0].id;
+            : (getSuggestedMeal(nextPlace) ?? hall.options[0].id);
 
-        const selection = currentSelection();
-        saveSelection(selection);
-        void loadMenu(selection);
+        const initialSelection = currentSelection();
+        const handleHistory = (): void => {
+            const params = new URL(window.location.href).searchParams;
+            const nextPlace =
+                halls.find(
+                    (hall) =>
+                        hall.id ===
+                        (params.get("place") ?? initialSelection.place)
+                ) ?? halls[0];
+            const nextDate = params.get("dateStr") ?? initialSelection.dateStr;
+            date = isValidDateString(nextDate) ? nextDate : today();
+            place = nextPlace.id;
+            meal =
+                nextPlace.options.find(
+                    (option) =>
+                        option.id ===
+                        (params.get("meal") ?? initialSelection.meal)
+                )?.id ?? nextPlace.options[0].id;
+            const selection = currentSelection();
+            rememberSelection(selection);
+            void loadMenu(selection);
+        };
+        const handleMenuUpdate = async (event: MessageEvent): Promise<void> => {
+            if (
+                event.data?.meta !== "workbox-broadcast-update" ||
+                event.data?.type !== "CACHE_UPDATED" ||
+                event.data.payload?.cacheName !== MENU_CACHE_NAME
+            )
+                return;
+            const url = menuRequestUrl(currentSelection());
+            if (
+                event.data.payload.updatedURL !==
+                new URL(url, window.location.origin).href
+            )
+                return;
+            const version = requestNumber;
+            const data = await readSavedMenu(url);
+            if (
+                data &&
+                version === requestNumber &&
+                url === menuRequestUrl(currentSelection())
+            )
+                displayMenu(data, url);
+        };
+        window.addEventListener("popstate", handleHistory);
+        navigator.serviceWorker?.addEventListener("message", handleMenuUpdate);
+
+        // SvelteKit's router is not initialized during the initial onMount.
+        // Keep this entry's URL intact; only user selections add history.
+        rememberSelection(initialSelection);
+        void loadMenu(initialSelection);
 
         return () => {
+            requestNumber++;
             window.clearInterval(clock);
+            window.clearTimeout(loadingTimer);
+            window.removeEventListener("popstate", handleHistory);
+            navigator.serviceWorker?.removeEventListener(
+                "message",
+                handleMenuUpdate
+            );
             window.removeEventListener("online", handleOnline);
             window.removeEventListener("offline", handleOffline);
             activeController?.abort();
@@ -404,18 +484,13 @@
     <section class="controls" aria-label="Menu filters">
         <div class="tab-group">
             <span class="sr-only">Dining hall</span>
-            <div
-                class="tab-list"
-                role="tablist"
-                aria-label="Select dining hall"
-            >
+            <div class="tab-list" role="group" aria-label="Select dining hall">
                 {#each halls as hall (hall.id)}
                     <button
                         class="tab-button hall-tab"
                         class:active={place === hall.id}
                         type="button"
-                        role="tab"
-                        aria-selected={place === hall.id}
+                        aria-pressed={place === hall.id}
                         onclick={() => selectPlace(hall.id)}
                     >
                         <HallIcon hallId={hall.id} class="hall-icon" />
@@ -426,7 +501,7 @@
         </div>
 
         <div class="date-selector">
-            <span class="sr-only">Date</span>
+            <label class="sr-only" for="menu-date">Menu date</label>
             <button
                 class="icon-button"
                 type="button"
@@ -438,7 +513,7 @@
             <div class="date-input-wrap">
                 <CalendarDays size={17} aria-hidden="true" />
                 <input
-                    aria-label="Menu date"
+                    id="menu-date"
                     type="date"
                     value={date}
                     onchange={(event) =>
@@ -459,14 +534,13 @@
 
         <div class="tab-group">
             <span class="sr-only">Meal</span>
-            <div class="tab-list" role="tablist" aria-label="Select meal">
+            <div class="tab-list" role="group" aria-label="Select meal">
                 {#each selectedHall().options as option (option.id)}
                     <button
                         class="tab-button meal-tab"
                         class:active={meal === option.id}
                         type="button"
-                        role="tab"
-                        aria-selected={meal === option.id}
+                        aria-pressed={meal === option.id}
                         onclick={() => selectMeal(option.id)}
                     >
                         <span class="meal-emoji" aria-hidden="true">
@@ -511,11 +585,7 @@
                     .open)}
         >
             <summary class="filters-summary">
-                <span
-                    id="filters-heading"
-                    class="filters-heading"
-                    role="heading"
-                    aria-level="2">Filters</span
+                <span id="filters-heading" class="filters-heading">Filters</span
                 >
                 <span class="filter-status">
                     <span
@@ -555,17 +625,9 @@
                             aria-label={`${filter}: ${filterStateLabel(state)}`}
                             title={`${filterStateLabel(state)} — click to cycle`}
                             data-state={state}
-                            onclick={() => handleFilterClick(filter)}
-                            ondblclick={() => handleFilterDoubleClick(filter)}
+                            onclick={() => cycleFilter(filter)}
                         >
                             {iconMap[filter] ?? filter}
-                            <span class="filter-state" aria-hidden="true">
-                                {state === "off"
-                                    ? "off"
-                                    : state === "only"
-                                      ? "only"
-                                      : "on"}
-                            </span>
                         </button>
                     {/each}
                 </div>
@@ -577,11 +639,28 @@
         </details>
     {/if}
 
-    <section class="menu-card" aria-live="polite" aria-busy={loading}>
+    <p class="sr-only" role="status">
+        {menuStatus === "ready"
+            ? `Menu ready. ${visibleItemCount} items.`
+            : menuStatus === "error"
+              ? errorMessage
+              : menuStatus === "closed"
+                ? "No menu is listed for this meal."
+                : menuStatus === "unavailable"
+                  ? "Menu not published."
+                  : ""}
+    </p>
+    <section class="menu-card" aria-label="Menu" aria-busy={loading}>
         {#if loading}
-            <div class="loading" role="status">
+            <div class="loading">
                 <div class="loading-copy">
-                    <img class="loading-logo" src="/favicon.svg" alt="" />
+                    <img
+                        class="loading-logo"
+                        src="/favicon.svg"
+                        alt=""
+                        width="28"
+                        height="28"
+                    />
                     <span>Loading</span>
                     <span class="loading-dots" aria-hidden="true">...</span>
                 </div>
@@ -627,7 +706,11 @@
 
         {#if menuStatus === "closed" || menuStatus === "unavailable"}
             <div class="empty-state prominent-state">
-                <strong>No data</strong>
+                <strong
+                    >{menuStatus === "closed"
+                        ? "No menu listed"
+                        : "Not published"}</strong
+                >
                 <span>{emptyMenuReason}</span>
             </div>
         {:else if menuStatus === "error"}
@@ -711,12 +794,8 @@
                 Today
             </button>
         {/if}
-        <button
-            class="action-button"
-            type="button"
-            aria-label="Toggle dark mode"
-            onclick={toggleMode}
-        >
+        <button class="action-button" type="button" onclick={toggleMode}>
+            <span class="sr-only">Switch color theme to </span>
             <span class="light-mode-control"><Sun size={18} />Light</span>
             <span class="dark-mode-control"><Moon size={18} />Dark</span>
         </button>

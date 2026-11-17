@@ -7,6 +7,10 @@ export default defineConfig({
         sveltekit(),
         SvelteKitPWA({
             registerType: "autoUpdate",
+            injectRegister: false,
+            strategies: "injectManifest",
+            srcDir: "src",
+            filename: "sw.ts",
             includeAssets: [
                 "favicon.ico",
                 "favicon.svg",
@@ -33,35 +37,10 @@ export default defineConfig({
                     }
                 ]
             },
-            workbox: {
-                navigateFallback: "/",
-                runtimeCaching: [
-                    {
-                        urlPattern: ({ url }) =>
-                            url.pathname.startsWith("/api/menu"),
-                        handler: "NetworkFirst",
-                        options: {
-                            cacheName: "menu-api-v2",
-                            networkTimeoutSeconds: 8,
-                            expiration: {
-                                maxEntries: 128,
-                                maxAgeSeconds: 2 * 24 * 60 * 60
-                            }
-                        }
-                    },
-                    {
-                        urlPattern: ({ request }) =>
-                            request.destination === "document",
-                        handler: "NetworkFirst",
-                        options: {
-                            cacheName: "documents",
-                            networkTimeoutSeconds: 8,
-                            expiration: {
-                                maxEntries: 8,
-                                maxAgeSeconds: 24 * 60 * 60
-                            }
-                        }
-                    }
+            injectManifest: {
+                globPatterns: [
+                    "client/**/*.{js,css,ico,png,svg,woff2,webmanifest}",
+                    "prerendered/**/*.html"
                 ]
             }
         })
