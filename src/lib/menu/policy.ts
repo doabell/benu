@@ -1,4 +1,4 @@
-import config from "../../../menu.config.json";
+import config from "../../../menu.config.json" with { type: "json" };
 
 if (![1, 2, 3, 4, 6, 8, 12, 24].includes(config.refreshHours)) {
     throw new Error("refreshHours must be one of 1, 2, 3, 4, 6, 8, 12, 24");
@@ -27,8 +27,9 @@ export const menuPolicy = {
             : `0 */${config.refreshHours} * * *`
 };
 
-export const MENU_CACHE_NAME = "benu-menu-v3";
 export const MENU_FETCHED_AT = "X-Menu-Fetched-At";
+export const MENU_CACHE_NAME = "benu-menus-v1";
+export const MENU_WORKER_HEADER = "X-Benu-Menu-Worker";
 
 export function isUsableMenuResponse(
     response: Response,

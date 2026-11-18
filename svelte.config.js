@@ -6,6 +6,8 @@ import { vitePreprocess } from "@sveltejs/vite-plugin-svelte";
 const config = {
     preprocess: vitePreprocess(),
     kit: {
+        // The precached root document is also the offline shell for nested URLs.
+        paths: { relative: false },
         files: {
             assets: "public",
             serviceWorker: "src/sw.ts"

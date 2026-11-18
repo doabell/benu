@@ -1,28 +1,17 @@
 import { expect, test, type BrowserContext } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
+import { menusFixture, menuHeaders, soupSections } from "./fixtures";
 
-const selection = "/?dateStr=2026-07-21&place=proctor-dining-hall&meal=lunch";
+const selection = "/proctor/lunch/2026-07-21";
 const body = (name: string) =>
-    JSON.stringify([
-        {
-            title: "Main",
-            items: [{ id: 1, position: 1, name, iconNames: ["Vegan"] }]
-        }
-    ]);
-const headers = (etag: string) => ({
-    "Content-Type": "application/json",
-    "X-Menu-Result": "ok",
-    "X-Menu-Fetched-At": new Date().toISOString(),
-    ETag: `"${etag}"`,
-    "Cache-Control": "public, max-age=21600",
-    Date: new Date().toUTCString()
-});
+    JSON.stringify(menusFixture("2026-07-21", () => soupSections(name)));
+const headers = menuHeaders;
 
 async function mockMenus(
     context: BrowserContext,
     getName = () => "Saved soup"
 ) {
-    await context.route("**/api/menu?**", async (route) => {
+    await context.route("**/api/menus?**", async (route) => {
         const name = getName();
         await route.fulfill({
             status: 200,
@@ -39,9 +28,11 @@ test("shows a saved menu immediately during a slow background request", async ({
     await mockMenus(context);
     await page.goto(selection);
     await expect(page.getByText("Saved soup", { exact: true })).toBeVisible();
+    await page.getByRole("button", { name: "Filters", exact: true }).click();
     await page
         .getByRole("button", { name: "Vegan: included", exact: true })
         .click();
+    await page.getByRole("button", { name: "Done", exact: true }).click();
     await page.evaluate(async () => {
         await navigator.serviceWorker.ready;
     });
@@ -50,7 +41,7 @@ test("shows a saved menu immediately during a slow background request", async ({
         .toBe(true);
 
     const gate = Promise.withResolvers<void>();
-    await context.route("**/api/menu?**", async (route) => {
+    await context.route("**/api/menus?**", async (route) => {
         await gate.promise;
         await route.fulfill({
             status: 200,
@@ -70,9 +61,12 @@ test("shows a saved menu immediately during a slow background request", async ({
         gate.resolve();
     }
     await expect(page.getByText("Updated soup", { exact: true })).toBeVisible();
+    await expect(page.locator(".filter-badge")).toHaveText("1");
+    await page.getByRole("button", { name: "Filters", exact: true }).click();
     await expect(
         page.getByRole("button", { name: "Vegan: only", exact: true })
     ).toBeVisible();
+    await page.getByRole("button", { name: "Done", exact: true }).click();
     await page.screenshot({
         path: "test-results/menu-desktop.png",
         fullPage: true
@@ -92,7 +86,7 @@ test("starts offline from saved assets and menus", async ({
     await expect
         .poll(() => page.evaluate(() => !!navigator.serviceWorker.controller))
         .toBe(true);
-    await context.unroute("**/api/menu?**");
+    await context.unroute("**/api/menus?**");
     await context.setOffline(true);
     await page.reload();
     await expect(page.getByText("Saved soup", { exact: true })).toBeVisible();
@@ -106,7 +100,7 @@ test("refuses a saved menu older than one day", async ({ page, context }) => {
     await expect(page.getByText("Saved soup", { exact: true })).toBeVisible();
     await page.evaluate(async () => {
         await navigator.serviceWorker.ready;
-        const cache = await caches.open("benu-menu-v3");
+        const cache = await caches.open("benu-menus-v1");
         for (const key of await cache.keys()) {
             const response = (await cache.match(key))!;
             const headers = new Headers(response.headers);
@@ -120,7 +114,7 @@ test("refuses a saved menu older than one day", async ({ page, context }) => {
             );
         }
     });
-    await context.unroute("**/api/menu?**");
+    await context.unroute("**/api/menus?**");
     await context.setOffline(true);
     await page.reload();
     await expect(
@@ -131,6 +125,70 @@ test("refuses a saved menu older than one day", async ({ page, context }) => {
             .getByRole("region", { name: "Menu", exact: true })
             .getByText("Not saved for offline use.")
     ).toBeVisible();
+});
+
+test("starts offline with one saved day containing every hall and meal", async ({
+    page,
+    context
+}) => {
+    await context.route("**/api/menus?**", async (route) => {
+        await route.fulfill({
+            status: 200,
+            headers: headers("all"),
+            body: JSON.stringify(
+                menusFixture("2026-07-21", (hall, meal) =>
+                    soupSections(hall + " " + meal + " soup")
+                )
+            )
+        });
+    });
+    await page.goto(selection.replace("/proctor/", "/all/"));
+    for (const hall of [
+        "proctor-dining-hall",
+        "ross-dining-hall",
+        "atwater-dining-hall"
+    ]) {
+        await expect(
+            page.getByText(hall + " lunch soup", { exact: true })
+        ).toBeVisible();
+    }
+    await page.evaluate(async () => {
+        await navigator.serviceWorker.ready;
+    });
+    await expect
+        .poll(() => page.evaluate(() => !!navigator.serviceWorker.controller))
+        .toBe(true);
+    await expect
+        .poll(() =>
+            page.evaluate(
+                async () =>
+                    (await (await caches.open("benu-menus-v1")).keys()).length
+            )
+        )
+        .toBe(1);
+    await context.unroute("**/api/menus?**");
+    await context.setOffline(true);
+    await page.reload();
+    for (const hall of [
+        "proctor-dining-hall",
+        "ross-dining-hall",
+        "atwater-dining-hall"
+    ]) {
+        await expect(
+            page.getByText(hall + " lunch soup", { exact: true })
+        ).toBeVisible();
+    }
+    await expect(page.locator(".saved-menu-note")).toHaveCount(1);
+    await expect(page.getByText("Loading", { exact: true })).not.toBeVisible();
+    await page.getByRole("button", { name: "Dinner", exact: true }).click();
+    for (const hall of [
+        "proctor-dining-hall",
+        "ross-dining-hall",
+        "atwater-dining-hall"
+    ])
+        await expect(
+            page.getByText(hall + " dinner soup", { exact: true })
+        ).toBeVisible();
 });
 
 test("works with denied local preferences and has accessible mobile controls", async ({
@@ -154,7 +212,7 @@ test("works with denied local preferences and has accessible mobile controls", a
     await expect(
         page.getByRole("button", { name: "Ross", exact: true })
     ).toHaveAttribute("aria-pressed", "true");
-    await expect(page).toHaveURL(/place=ross-dining-hall/);
+    await expect(page).toHaveURL(/\/ross\//);
     await page.goBack();
     await expect(
         page.getByRole("button", { name: "Proctor", exact: true })
@@ -213,41 +271,4 @@ test("follows the system theme and preserves explicit overrides", async ({
             .getByRole("button", { name: "Ross", exact: true })
             .evaluate((element) => getComputedStyle(element).outlineStyle)
     ).not.toBe("none");
-});
-
-test("upgrades the existing service-worker URL and removes old runtime caches", async ({
-    page,
-    context
-}) => {
-    await mockMenus(context);
-    await context.route("**/sw.js", (route) =>
-        route.fulfill({
-            contentType: "application/javascript",
-            body: `self.addEventListener('install', () => self.skipWaiting());
-            self.addEventListener('activate', event => event.waitUntil(Promise.all([
-                caches.open('menu-api-v2'), caches.open('documents'), self.clients.claim()
-            ])));`
-        })
-    );
-    await page.goto(selection);
-    await expect(page.getByText("Saved soup", { exact: true })).toBeVisible();
-    await page.evaluate(async () => {
-        await navigator.serviceWorker.ready;
-    });
-    await expect
-        .poll(() => page.evaluate(() => !!navigator.serviceWorker.controller))
-        .toBe(true);
-    expect(
-        await page.evaluate(() => navigator.serviceWorker.controller!.scriptURL)
-    ).toMatch(/\/sw\.js$/);
-    expect(await page.evaluate(() => caches.keys())).toContain("menu-api-v2");
-    await context.unroute("**/sw.js");
-    await page.evaluate(async () => {
-        await (await navigator.serviceWorker.getRegistration())!.update();
-    });
-    await expect
-        .poll(() => page.evaluate(() => caches.keys()))
-        .not.toContain("menu-api-v2");
-    expect(await page.evaluate(() => caches.keys())).not.toContain("documents");
-    await expect(page.getByText("Saved soup", { exact: true })).toBeVisible();
 });

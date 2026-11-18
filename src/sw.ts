@@ -1,5 +1,4 @@
 /// <reference lib="webworker" />
-// Keep /sw.js: existing PWA installations check this script URL for upgrades.
 import { clientsClaim } from "workbox-core";
 import {
     precacheAndRoute,
@@ -13,6 +12,7 @@ import { ExpirationPlugin } from "workbox-expiration";
 import { BroadcastUpdatePlugin } from "workbox-broadcast-update";
 import {
     MENU_CACHE_NAME,
+    MENU_WORKER_HEADER,
     menuPolicy,
     isUsableMenuResponse
 } from "./lib/menu/policy";
@@ -25,10 +25,7 @@ void self.skipWaiting();
 clientsClaim();
 cleanupOutdatedCaches();
 
-// Navigation must reach the network-first route; immutable assets are precached.
-// Keep the precached document as an offline fallback without intercepting it first.
-
-const menuCache = new StaleWhileRevalidate({
+const dayCache = new StaleWhileRevalidate({
     cacheName: MENU_CACHE_NAME,
     plugins: [
         {
@@ -42,7 +39,7 @@ const menuCache = new StaleWhileRevalidate({
             }
         },
         new ExpirationPlugin({
-            maxEntries: 128,
+            maxEntries: 32,
             maxAgeSeconds: menuPolicy.offlineSeconds,
             purgeOnQuotaError: true
         }),
@@ -50,14 +47,24 @@ const menuCache = new StaleWhileRevalidate({
     ]
 });
 registerRoute(
-    ({ url, sameOrigin }) => sameOrigin && url.pathname === "/api/menu",
-    menuCache
+    ({ url, sameOrigin }) => sameOrigin && url.pathname === "/api/menus",
+    async (options) => {
+        const response = await dayCache.handle(options);
+        const headers = new Headers(response.headers);
+        // Prevent a first-visit client cache seed from racing this worker's writes.
+        headers.set(MENU_WORKER_HEADER, "1");
+        return new Response(response.body, {
+            status: response.status,
+            statusText: response.statusText,
+            headers
+        });
+    }
 );
 
 registerRoute(
     ({ request }) => request.mode === "navigate",
     new NetworkFirst({
-        cacheName: "benu-documents-v3",
+        cacheName: "benu-documents-v1",
         networkTimeoutSeconds: 3,
         plugins: [
             new ExpirationPlugin({
@@ -74,16 +81,5 @@ setCatchHandler(async ({ request }) =>
         : Response.error()
 );
 
-// Register precaching after navigation, so the offline document cannot bypass
-// the network-first navigation handler on subsequent visits.
+// Navigation reaches network-first; the precached document is its offline fallback.
 precacheAndRoute(self.__WB_MANIFEST, { ignoreURLParametersMatching: [] });
-
-self.addEventListener("activate", (event) => {
-    event.waitUntil(
-        (async () => {
-            // Clean up the previously shipped NetworkFirst runtime caches as well.
-            const obsolete = ["menu-api-v2", "documents"];
-            await Promise.all(obsolete.map((name) => caches.delete(name)));
-        })()
-    );
-});

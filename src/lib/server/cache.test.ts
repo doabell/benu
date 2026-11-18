@@ -10,7 +10,6 @@ import {
 import { Miniflare } from "miniflare";
 import {
     createMenuCacheKey,
-    getCachedMenu,
     getWeekSnapshot,
     type MenuStore,
     type WeekSnapshot
@@ -68,13 +67,15 @@ describe("weekly snapshots using real local KV", () => {
             Response.json(weekForUrl(input))
         );
         const [first, second] = await Promise.all([
-            getCachedMenu(query, store, fetcher),
-            getCachedMenu({ ...query, dateStr: "2026-07-22" }, store, fetcher)
+            getWeekSnapshot(query, store, fetcher),
+            getWeekSnapshot({ ...query, dateStr: "2026-07-22" }, store, fetcher)
         ]);
         expect(fetcher).toHaveBeenCalledTimes(1);
-        expect(first.value.result).toBe("ok");
-        expect(second.value.sections).toEqual(first.value.sections);
-        await getCachedMenu(query, store, fetcher);
+        expect(first.snapshot.days[query.dateStr].result).toBe("ok");
+        expect(second.snapshot.days["2026-07-22"].sections).toEqual(
+            first.snapshot.days[query.dateStr].sections
+        );
+        await getWeekSnapshot(query, store, fetcher);
         expect(fetcher).toHaveBeenCalledTimes(1);
     });
 
@@ -87,45 +88,18 @@ describe("weekly snapshots using real local KV", () => {
         );
     });
 
-    it("reuses another hall's fetched week after checking for menus elsewhere", async () => {
-        const fetcher = vi.fn(async (input: RequestInfo | URL) => {
-            const week = weekForUrl(input);
-            if (!String(input).includes("ross-dining-hall"))
-                week.days.forEach((day) => (day.menu_items = []));
-            return Response.json(week);
-        });
-        const closed = await getCachedMenu(query, store, fetcher);
-        expect(closed.value).toMatchObject({
-            result: "closed",
-            hasDataElsewhere: true
-        });
-        expect(fetcher).toHaveBeenCalledTimes(3);
-        expect(
-            (
-                await getCachedMenu(
-                    {
-                        ...query,
-                        place: "ross-dining-hall",
-                        dateStr: "2026-07-22"
-                    },
-                    store,
-                    fetcher
-                )
-            ).value.result
-        ).toBe("ok");
-        expect(fetcher).toHaveBeenCalledTimes(3);
-    });
-
     it("keeps the original timestamp on failure and backs off repeated requests", async () => {
         const saved = await seed(menuPolicy.refreshMs + 1000);
         const fetcher = vi.fn(async () => new Response(null, { status: 503 }));
-        const result = await getCachedMenu(query, store, fetcher);
+        const result = await getWeekSnapshot(query, store, fetcher);
         expect(result).toMatchObject({
-            value: good,
             status: "stale",
-            fetchedAt: saved.fetchedAt
+            snapshot: {
+                days: { [query.dateStr]: good },
+                fetchedAt: saved.fetchedAt
+            }
         });
-        await getCachedMenu(query, store, fetcher);
+        await getWeekSnapshot(query, store, fetcher);
         expect(fetcher).toHaveBeenCalledTimes(1);
         expect(
             (await store.get<WeekSnapshot>(createMenuCacheKey(query), "json"))
@@ -136,7 +110,7 @@ describe("weekly snapshots using real local KV", () => {
     it("never serves data older than the one-day limit", async () => {
         await seed(menuPolicy.offlineSeconds * 1000 + 1000);
         await expect(
-            getCachedMenu(
+            getWeekSnapshot(
                 query,
                 store,
                 async () => new Response(null, { status: 503 })
@@ -146,10 +120,10 @@ describe("weekly snapshots using real local KV", () => {
 
     it("does not overwrite saved menus with invalid responses", async () => {
         await seed(menuPolicy.refreshMs + 1000);
-        const result = await getCachedMenu(query, store, async () =>
+        const result = await getWeekSnapshot(query, store, async () =>
             Response.json({ days: [{ bad: true }] })
         );
-        expect(result.value).toEqual(good);
+        expect(result.snapshot.days[query.dateStr]).toEqual(good);
         expect(result.status).toBe("stale");
     });
 

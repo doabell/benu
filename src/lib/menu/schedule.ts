@@ -48,12 +48,12 @@ const schedules: Record<string, HallSchedule> = {
         weekday: [
             window("breakfast", "Breakfast", 7 * 60, 9 * 60 + 30),
             window("lunch", "Lunch", 11 * 60, 14 * 60),
-            window("dinner", "Dinner", 17 * 60, 20 * 60 + 30)
+            window("dinner", "Dinner", 17 * 60 + 30, 20 * 60 + 30)
         ],
         weekend: [
             window("breakfast", "Breakfast", 8 * 60, 11 * 60),
             window("lunch", "Brunch", 11 * 60, 14 * 60),
-            window("dinner", "Dinner", 17 * 60, 20 * 60 + 30)
+            window("dinner", "Dinner", 17 * 60 + 30, 20 * 60 + 30)
         ]
     },
     "atwater-dining-hall": {
@@ -97,18 +97,109 @@ const getWeekday = (date: Date): number => {
     return ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].indexOf(weekday);
 };
 
-const formatTime = (minutes: number): string => {
-    const hour = Math.floor(minutes / 60);
-    const minute = minutes % 60;
-    const suffix = hour >= 12 ? "PM" : "AM";
-    const displayHour = hour % 12 || 12;
-    return minute === 0
-        ? `${displayHour} ${suffix}`
-        : `${displayHour}:${String(minute).padStart(2, "0")} ${suffix}`;
-};
+const clocks = new Map<
+    string,
+    { full: Intl.DateTimeFormat; hour: Intl.DateTimeFormat; hour12: boolean }
+>();
+export function formatCampusTime(minutes: number, locale?: string): string {
+    const key = locale ?? "browser";
+    let clock = clocks.get(key);
+    if (!clock) {
+        const full = new Intl.DateTimeFormat(locale, {
+            hour: "numeric",
+            minute: "2-digit",
+            timeZone: "UTC"
+        });
+        clock = {
+            full,
+            hour: new Intl.DateTimeFormat(locale, {
+                hour: "numeric",
+                timeZone: "UTC"
+            }),
+            hour12: !!full.resolvedOptions().hour12
+        };
+        clocks.set(key, clock);
+    }
+    // These integers already represent campus wall time. UTC is only a neutral
+    // carrier for locale formatting; never convert them into the viewer's zone.
+    const time = new Date(
+        Date.UTC(2000, 0, 1, Math.floor(minutes / 60), minutes % 60)
+    );
+    return (clock.hour12 && minutes % 60 === 0 ? clock.hour : clock.full)
+        .format(time)
+        .replace(/[\u00a0\u202f]/g, " ");
+}
+const formatTime = formatCampusTime;
+const zoneFormatter = new Intl.DateTimeFormat("en-US", {
+    timeZone: CAMPUS_TIME_ZONE,
+    timeZoneName: "short"
+});
+export function campusZoneLabel(dateStr: string): string {
+    return (
+        zoneFormatter
+            .formatToParts(new Date(`${dateStr}T12:00:00Z`))
+            .find((part) => part.type === "timeZoneName")?.value ?? "ET"
+    );
+}
 
 const getWindows = (schedule: HallSchedule, weekday: number): MealWindow[] =>
     weekday === 0 || weekday === 6 ? schedule.weekend : schedule.weekday;
+
+export function getRegularMealHours(
+    place: string,
+    meal: string,
+    dateStr: string,
+    locale?: string
+): { label: string; hours: string } | undefined {
+    const schedule = schedules[place];
+    if (!schedule) return;
+    // A menu date is a calendar day, independent of the viewer's time zone.
+    const weekday = new Date(`${dateStr}T12:00:00Z`).getUTCDay();
+    const mealWindow = getWindows(schedule, weekday).find(
+        (window) => window.meal === meal
+    );
+    if (!mealWindow) return;
+    return {
+        label: mealWindow.label,
+        hours: `${formatTime(mealWindow.start, locale)}–${formatTime(mealWindow.end, locale)}`
+    };
+}
+
+export function getWeeklyMealHours(
+    place: string,
+    locale?: string
+): { label: string; weekday: string; weekend: string }[] {
+    const schedule = schedules[place];
+    if (!schedule) return [];
+    const hours = (window: MealWindow | undefined): string =>
+        window
+            ? `${formatTime(window.start, locale)}–${formatTime(window.end, locale)}`
+            : "Not served";
+    const rows = ["breakfast", "lunch", "dinner"].map((meal) => ({
+        label:
+            meal === "lunch" &&
+            schedule.weekend.some((window) => window.meal === "lunch")
+                ? "Lunch / brunch"
+                : meal.charAt(0).toUpperCase() + meal.slice(1),
+        weekday: hours(schedule.weekday.find((window) => window.meal === meal)),
+        weekend: hours(schedule.weekend.find((window) => window.meal === meal))
+    }));
+    if (place === "proctor-dining-hall" || place === "ross-dining-hall")
+        rows.splice(1, 0, {
+            label: "Continental",
+            weekday: `${formatTime(9 * 60 + 30, locale)}–${formatTime(11 * 60, locale)}`,
+            weekend: "—"
+        });
+    return rows;
+}
+
+export function getDiningHoursNotes(place: string): string[] {
+    return place === "ross-dining-hall"
+        ? [
+              `Lunch has limited options until ${formatTime(14 * 60 + 30)} on weekdays.`
+          ]
+        : [];
+}
 
 const nextOpening = (
     schedule: HallSchedule,

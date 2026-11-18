@@ -1,13 +1,7 @@
-import { halls } from "../menu/data";
 import { weekStart } from "../menu/dates";
 import { menuPolicy } from "../menu/policy";
 import type { MenuQuery } from "../menu/types";
-import {
-    fetchWeekMenu,
-    unavailableMenu,
-    type MenuFetchResult,
-    type WeekMenu
-} from "./menu";
+import { fetchWeekMenu, type WeekMenu } from "./menu";
 
 export type MenuStore = Pick<KVNamespace, "get" | "put">;
 export interface WeekSnapshot extends WeekMenu {
@@ -112,43 +106,4 @@ async function loadWeek(
             .catch(() => undefined);
         return { snapshot, status: "stale" };
     }
-}
-
-export async function getCachedMenu(
-    query: MenuQuery,
-    store: MenuStore,
-    fetcher: typeof fetch = fetch
-): Promise<{
-    value: MenuFetchResult;
-    status: CacheStatus;
-    fetchedAt: number;
-}> {
-    const { snapshot, status } = await getWeekSnapshot(query, store, fetcher);
-    const value = snapshot.days[query.dateStr] ?? unavailableMenu();
-    if (value.result === "ok")
-        return { value, status, fetchedAt: snapshot.fetchedAt };
-    const others = halls.filter(
-        (hall) =>
-            hall.id !== query.place &&
-            hall.options.some((option) => option.id === query.meal)
-    );
-    const results = await Promise.all(
-        others.map(async (hall) => {
-            try {
-                const { snapshot } = await getWeekSnapshot(
-                    { ...query, place: hall.id },
-                    store,
-                    fetcher
-                );
-                return snapshot.days[query.dateStr]?.result === "ok";
-            } catch {
-                return false;
-            }
-        })
-    );
-    return {
-        value: { ...value, hasDataElsewhere: results.some(Boolean) },
-        status,
-        fetchedAt: snapshot.fetchedAt
-    };
 }

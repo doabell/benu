@@ -1,12 +1,78 @@
 import { describe, expect, it } from "vitest";
 import {
     campusToday,
+    campusZoneLabel,
+    formatCampusTime,
     getMealStatus,
     getNoDataReason,
-    getSuggestedMeal
+    getSuggestedMeal,
+    getRegularMealHours,
+    getWeeklyMealHours,
+    getDiningHoursNotes
 } from "./schedule";
 
 describe("dining schedule", () => {
+    it("formats the same Eastern wall time in the requested locale", () => {
+        expect(formatCampusTime(17 * 60 + 30, "en-US")).toBe("5:30 PM");
+        expect(formatCampusTime(17 * 60 + 30, "en-GB")).toBe("17:30");
+        expect(formatCampusTime(14 * 60, "en-GB")).toBe("14:00");
+        expect(campusZoneLabel("2026-01-13")).toBe("EST");
+        expect(campusZoneLabel("2026-07-21")).toBe("EDT");
+        expect(
+            getRegularMealHours(
+                "ross-dining-hall",
+                "dinner",
+                "2026-07-21",
+                "en-GB"
+            )?.hours
+        ).toBe("17:30–20:30");
+    });
+    it("lists continental breakfast as its own weekday row only where offered", () => {
+        for (const hall of ["proctor-dining-hall", "ross-dining-hall"]) {
+            expect(getWeeklyMealHours(hall)[1]).toEqual({
+                label: "Continental",
+                weekday: "9:30 AM–11 AM",
+                weekend: "—"
+            });
+            expect(
+                getDiningHoursNotes(hall).some((note) =>
+                    note.includes("Continental")
+                )
+            ).toBe(false);
+        }
+        expect(
+            getWeeklyMealHours("atwater-dining-hall").some(
+                (row) => row.label === "Continental"
+            )
+        ).toBe(false);
+        expect(getDiningHoursNotes("atwater-dining-hall")).toEqual([]);
+    });
+    it("uses the published Ross dinner opening time", () => {
+        expect(
+            getRegularMealHours("ross-dining-hall", "dinner", "2026-01-13")
+        ).toEqual({ label: "Dinner", hours: "5:30 PM–8:30 PM" });
+        expect(
+            getRegularMealHours("ross-dining-hall", "dinner", "2026-01-11")
+        ).toEqual({ label: "Dinner", hours: "5:30 PM–8:30 PM" });
+    });
+    it("describes the selected meal and date independently of the current meal", () => {
+        expect(
+            getRegularMealHours("proctor-dining-hall", "dinner", "2026-01-13")
+        ).toEqual({ label: "Dinner", hours: "4:30 PM–8 PM" });
+        expect(
+            getRegularMealHours("ross-dining-hall", "lunch", "2026-01-11")
+        ).toEqual({ label: "Brunch", hours: "11 AM–2 PM" });
+        expect(
+            getRegularMealHours(
+                "atwater-dining-hall",
+                "breakfast",
+                "2026-01-13"
+            )
+        ).toBeUndefined();
+        expect(
+            getRegularMealHours("atwater-dining-hall", "lunch", "2026-01-11")
+        ).toBeUndefined();
+    });
     it("uses campus time to identify an open meal", () => {
         const status = getMealStatus(
             "proctor-dining-hall",

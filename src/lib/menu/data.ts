@@ -1,8 +1,8 @@
-import hallsJson from "../../data/halls.json";
-import iconMapJson from "../../data/iconMap.json";
-import ignoredSectionsJson from "../../data/ignoredSections.json";
-import noConnectionJson from "../../data/noConnection.json";
-import noDataJson from "../../data/noData.json";
+import hallsJson from "../../data/halls.json" with { type: "json" };
+import iconMapJson from "../../data/iconMap.json" with { type: "json" };
+import ignoredSectionsJson from "../../data/ignoredSections.json" with { type: "json" };
+import noConnectionJson from "../../data/noConnection.json" with { type: "json" };
+import noDataJson from "../../data/noData.json" with { type: "json" };
 import type { Hall, MenuSection } from "./types";
 
 export const halls = hallsJson as Hall[];
