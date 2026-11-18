@@ -690,6 +690,9 @@ input[type="date"]:not(.sr-only) {
     text-decoration: line-through;
     text-decoration-thickness: 0.12em;
 }
+.custom-filter-group {
+    grid-column: 1 / -1;
+}
 .custom-filter-form {
     display: grid;
     flex: 1 1 12rem;

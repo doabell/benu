@@ -107,15 +107,15 @@
         <div class="filter-groups">
             <div class="filter-column">
                 {@render labelGroup(filterGroups.dietary, true)}
-                {@render customGroup()}
                 {@render labelGroup(filterGroups.meatAndSeafood)}
+                {@render labelGroup(filterGroups.otherAllergens)}
             </div>
             <div class="filter-column">
                 {@render labelGroup(filterGroups.sourcing)}
                 {@render labelGroup(filterGroups.dairyAndAlcohol)}
-                {@render labelGroup(filterGroups.otherAllergens)}
                 {@render labelGroup(filterGroups.nuts)}
             </div>
+            {@render customGroup()}
         </div>
         <p class="dietary-disclaimer">{dietaryDisclaimer}</p>
     </search>
@@ -142,7 +142,7 @@
 {/snippet}
 
 {#snippet customGroup()}
-    <fieldset class="filter-group">
+    <fieldset class="filter-group custom-filter-group">
         <legend id="custom-filters-title">Custom filters</legend>
         <div class="filter-list">
             {#each customFilters as filter (filter.term)}

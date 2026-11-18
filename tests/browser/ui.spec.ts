@@ -566,6 +566,9 @@ test("opens grouped filters without moving the page and restores keyboard focus"
             dialog.getByRole("button", { name: /^Vegan:/ })
         ).toBeFocused();
         await expect(dialog.getByRole("group")).toHaveCount(7);
+        await expect(dialog.getByRole("group").last()).toHaveAccessibleName(
+            "Custom filters"
+        );
         await expect(
             dialog
                 .getByRole("group", { name: "Sourcing", exact: true })
@@ -615,8 +618,14 @@ test("opens grouped filters without moving the page and restores keyboard focus"
                 .boundingBox())!;
             expect(sourcing.x).toBeGreaterThan(custom.x);
             expect(dairy.y - (sourcing.y + sourcing.height)).toBeLessThan(18);
-            expect(allergens.y - (dairy.y + dairy.height)).toBeLessThan(18);
-            expect(nuts.y - (allergens.y + allergens.height)).toBeLessThan(18);
+            expect(nuts.y - (dairy.y + dairy.height)).toBeLessThan(18);
+            expect(custom.y).toBeGreaterThanOrEqual(
+                Math.max(allergens.y + allergens.height, nuts.y + nuts.height)
+            );
+            expect(Math.abs(custom.x - allergens.x)).toBeLessThan(1);
+            expect(
+                Math.abs(custom.x + custom.width - (nuts.x + nuts.width))
+            ).toBeLessThan(1);
         }
         await page.screenshot({ path: `test-results/filters-${width}.png` });
         await page.keyboard.press("Escape");
