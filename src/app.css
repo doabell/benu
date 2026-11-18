@@ -137,7 +137,7 @@ a {
 button {
     cursor: pointer;
 }
-:where(button, a, input, summary, [tabindex="-1"]):focus-visible {
+:where(button, a, input, summary, [tabindex]):focus-visible {
     outline: 2px solid var(--accent);
     outline-offset: 3px;
 }
@@ -452,17 +452,12 @@ input[type="date"]:not(.sr-only) {
 .filter-dialog[open],
 .dish-dialog[open] {
     display: grid;
+    grid-template-rows: auto minmax(0, 1fr);
     gap: 1rem;
     overflow: hidden;
 }
-.filter-dialog[open] {
-    grid-template-rows: auto minmax(0, 1fr) auto;
-}
 .dish-dialog {
     inline-size: min(100% - 1rem, 34rem);
-}
-.dish-dialog[open] {
-    grid-template-rows: auto minmax(0, 1fr);
 }
 .filter-dialog-heading,
 .dish-dialog-heading {
@@ -481,8 +476,10 @@ input[type="date"]:not(.sr-only) {
     line-height: 1.25;
     overflow-wrap: anywhere;
 }
+.filter-dialog-actions,
 .dish-dialog-actions {
     display: flex;
+    align-items: center;
     gap: 0.25rem;
 }
 .dish-image-search {
@@ -551,18 +548,26 @@ input[type="date"]:not(.sr-only) {
 }
 .dish-ingredients {
     margin: 0;
+    padding-inline-start: 1.15rem;
     font-size: 1rem;
     white-space: pre-line;
 }
-.dish-photo {
+.dish-ingredients li + li {
+    margin-block-start: 0.4rem;
+}
+.dish-ingredients li::marker {
+    color: var(--muted);
+}
+.ingredient-components {
     display: block;
-    inline-size: 100%;
-    block-size: auto;
-    max-block-size: 14rem;
-    aspect-ratio: 16 / 9;
-    border-radius: 0.5rem;
-    background: var(--surface-muted);
-    object-fit: contain;
+    margin-block-start: 0.1rem;
+    margin-inline-start: 0.4rem;
+    color: var(--muted);
+    font-size: 0.9375rem;
+}
+.dish-details-empty {
+    margin: 0;
+    color: var(--muted);
 }
 .filter-groups {
     display: grid;
@@ -611,36 +616,17 @@ input[type="date"]:not(.sr-only) {
     text-decoration: line-through;
     text-decoration-thickness: 0.12em;
 }
-.filter-disclaimer {
+.dietary-disclaimer {
     max-inline-size: 65ch;
-    margin: 1rem 0 0;
+    margin: 0;
+    padding-block-start: 0.75rem;
+    border-block-start: 1px solid var(--border);
     color: var(--muted);
     font-size: 0.9375rem;
     line-height: 1.5;
 }
-.filter-dialog-actions {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 1rem;
-    min-block-size: 2.75rem;
-    margin: 0;
-    padding: 0;
-}
-.filter-dialog-actions form {
-    margin-inline-start: auto;
-}
-.done-button {
-    min-block-size: 2.75rem;
-    padding: 0.5rem 1rem;
-    border: 0;
-    border-radius: 0.4rem;
-    background: var(--accent);
-    color: var(--accent-contrast);
-    font-size: 1rem;
-}
-.done-button:hover {
-    background: var(--accent-strong);
+.filter-dialog-body > .dietary-disclaimer {
+    margin-block-start: 1rem;
 }
 @media (min-width: 40rem) {
     .filter-groups {
@@ -765,7 +751,7 @@ input[type="date"]:not(.sr-only) {
 .menu-item {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
-    align-items: start;
+    align-items: center;
     gap: 0.5rem;
     padding-block: 0.5rem;
 }
@@ -801,8 +787,6 @@ input[type="date"]:not(.sr-only) {
     font-size: 1em;
 }
 .dish-info-button {
-    inline-size: 2.25rem;
-    min-block-size: 2.25rem;
     color: var(--muted);
 }
 .empty-state {
@@ -982,12 +966,6 @@ footer {
         display: none;
     }
 }
-@media (pointer: coarse) {
-    .dish-info-button {
-        inline-size: 2.75rem;
-        min-block-size: 2.75rem;
-    }
-}
 .hours-dialog {
     inline-size: min(100% - 1rem, 40rem);
     max-inline-size: calc(100% - 1rem);
@@ -1108,7 +1086,7 @@ dialog::backdrop {
     }
 }
 @media (forced-colors: active) {
-    :where(button, a, input, summary, [tabindex="-1"]):focus-visible {
+    :where(button, a, input, summary, [tabindex]):focus-visible {
         outline-color: Highlight;
     }
     .filter-chip.only,

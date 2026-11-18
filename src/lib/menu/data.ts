@@ -10,3 +10,5 @@ export const iconMap = iconMapJson as Record<string, string>;
 export const ignoredSections = ignoredSectionsJson as string[];
 export const noConnection = noConnectionJson as MenuSection[];
 export const noData = noDataJson as MenuSection[];
+export const dietaryDisclaimer =
+    "Dietary labels come from menu data and may be incomplete. Check with Dining Services about ingredients and allergens.";

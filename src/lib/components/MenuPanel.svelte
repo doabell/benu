@@ -135,7 +135,7 @@
                                     aria-controls="dish-details"
                                     onclick={() => showDish(item)}
                                 >
-                                    <Info size={17} aria-hidden="true" />
+                                    <Info size={20} aria-hidden="true" />
                                 </button>
                             </li>
                         {/each}

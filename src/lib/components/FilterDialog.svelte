@@ -1,6 +1,6 @@
 <script lang="ts">
     import { X } from "@lucide/svelte";
-    import { iconMap } from "$lib/menu/data";
+    import { dietaryDisclaimer, iconMap } from "$lib/menu/data";
     import {
         filterGroups,
         type FilterState,
@@ -21,6 +21,7 @@
         closed: () => void;
     } = $props();
     let dialog: HTMLDialogElement;
+    let closeButton: HTMLButtonElement;
     const stateFor = (name: string): FilterState => states[name] ?? "on";
     const stateLabel = (state: FilterState): string =>
         state === "off" ? "excluded" : state === "only" ? "only" : "included";
@@ -44,11 +45,27 @@
                 {activeCount ? `${activeCount} active` : "No active filters"}
             </p>
         </div>
-        <form method="dialog">
-            <button class="icon-button" type="submit" aria-label="Close filters"
-                ><X size={20} aria-hidden="true" /></button
-            >
-        </form>
+        <div class="filter-dialog-actions">
+            {#if activeCount}
+                <button
+                    class="text-button clear-filters"
+                    type="button"
+                    onclick={() => {
+                        clear();
+                        closeButton.focus();
+                    }}>Clear filters</button
+                >
+            {/if}
+            <form method="dialog">
+                <button
+                    bind:this={closeButton}
+                    class="icon-button"
+                    type="submit"
+                    aria-label="Close filters"
+                    ><X size={20} aria-hidden="true" /></button
+                >
+            </form>
+        </div>
     </header>
     <search class="filter-dialog-body" aria-label="Filter menu items">
         <div class="filter-groups">
@@ -76,19 +93,6 @@
                 </fieldset>
             {/each}
         </div>
-        <p class="filter-disclaimer">
-            Dietary labels come from menu data and may be incomplete. Check with
-            Dining Services about allergens.
-        </p>
+        <p class="dietary-disclaimer">{dietaryDisclaimer}</p>
     </search>
-    <footer class="filter-dialog-actions">
-        {#if activeCount}<button
-                class="text-button clear-filters"
-                type="button"
-                onclick={clear}>Clear filters</button
-            >{/if}
-        <form method="dialog">
-            <button class="done-button" type="submit">Done</button>
-        </form>
-    </footer>
 </dialog>

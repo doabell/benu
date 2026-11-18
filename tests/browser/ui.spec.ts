@@ -123,13 +123,18 @@ test("applies all three filter states across equal hall panels and clears empty 
     await page.locator(".clear-filters").click();
     await expect(page.locator(".item-name")).toHaveCount(6);
     await expect(page.locator(".clear-filters")).not.toBeVisible();
+    await expect(
+        page.getByRole("button", { name: "Close filters" })
+    ).toBeFocused();
     await page
         .getByRole("button", { name: "Vegan: included", exact: true })
         .click();
     await page
         .getByRole("button", { name: "Dairy: included", exact: true })
         .click();
-    await page.getByRole("button", { name: "Done", exact: true }).click();
+    await page
+        .getByRole("button", { name: "Close filters", exact: true })
+        .click();
     await expect(page.getByText("No matches", { exact: true })).toHaveCount(3);
     await page
         .getByRole("region", { name: "Ross menu", exact: true })
@@ -402,6 +407,10 @@ test("opens grouped filters without moving the page and restores keyboard focus"
     ).toBeVisible();
     const trigger = page.getByRole("button", { name: "Filters", exact: true });
     const dialog = page.getByRole("dialog", { name: "Filters", exact: true });
+    const close = dialog.getByRole("button", { name: "Close filters" });
+    const clear = dialog
+        .locator("header")
+        .getByRole("button", { name: "Clear filters" });
     const actions = page.locator(".header-actions > button");
     await expect(actions.nth(0)).toHaveAccessibleName("Jump to today");
     await expect(actions.nth(1)).toHaveAccessibleName("Filters");
@@ -412,6 +421,15 @@ test("opens grouped filters without moving the page and restores keyboard focus"
         const before = await controlBounds(page);
         await trigger.click();
         await expect(dialog).toBeVisible();
+        await expect(dialog.getByRole("button", { name: "Done" })).toHaveCount(
+            0
+        );
+        await expect(
+            dialog.getByText(
+                "Check with Dining Services about ingredients and allergens.",
+                { exact: false }
+            )
+        ).toBeVisible();
         await expect(page.locator(".filter-toggle")).toHaveAttribute(
             "aria-expanded",
             "true"
@@ -462,7 +480,7 @@ test("opens grouped filters without moving the page and restores keyboard focus"
         await expect(
             dialog.getByRole("button", { name: "Vegan: only", exact: true })
         ).toBeVisible();
-        await dialog.getByRole("button", { name: "Done", exact: true }).click();
+        await close.click();
         await expect(trigger).toBeFocused();
     }
     await page.setViewportSize({ width: 320, height: 360 });
@@ -476,25 +494,20 @@ test("opens grouped filters without moving the page and restores keyboard focus"
     await dialog
         .getByRole("group", { name: "Nuts", exact: true })
         .scrollIntoViewIfNeeded();
-    await expect(
-        dialog.getByRole("button", { name: "Done", exact: true })
-    ).toBeInViewport();
-    await expect(
-        dialog.getByRole("button", { name: "Close filters", exact: true })
-    ).toBeInViewport();
+    await expect(clear).toBeInViewport();
+    await expect(close).toBeInViewport();
     expect(await page.evaluate(() => window.scrollY)).toBe(0);
-    await dialog.getByRole("button", { name: "Done", exact: true }).click();
+    await close.click();
     await expect(dialog).not.toBeVisible();
 });
 
-test("opens dish details from the daily response and loads the photo on demand", async ({
+test("shows grouped ingredients and nutrition without loading a dish photo", async ({
     page,
     context
 }) => {
     await page.setViewportSize({ width: 320, height: 680 });
     const photoUrl =
         "https://api.nutrislice.com/content/asset/serve/image/jpg/428870/thumbnail2";
-    const photoGate = Promise.withResolvers<void>();
     let menuRequests = 0;
     let photoRequests = 0;
     await context.route("**/api/menus?**", async (route) => {
@@ -512,7 +525,7 @@ test("opens dish details from the daily response and loads the photo on demand",
                         details: {
                             servingSize: "1 patty",
                             ingredients:
-                                "Soy protein, sunflower and coconut oils, salt, and black pepper.",
+                                "Button Mushroom, Lemon Juice (Lemon Juice, Sodium Benzoate, Sodium Metabisulfite, Lemon Oil), Pepper.",
                             nutrition: {
                                 calories: 247,
                                 proteinGrams: 20,
@@ -535,97 +548,113 @@ test("opens dish details from the daily response and loads the photo on demand",
         ]);
         await route.fulfill({ status: 200, headers: menuHeaders(), json: day });
     });
-    await context.route(photoUrl, async (route) => {
+    await context.route(photoUrl, (route) => {
         photoRequests++;
-        await photoGate.promise;
-        await route.fulfill({
-            path: "public/android-chrome-192x192.png",
-            contentType: "image/png"
-        });
+        return route.abort();
     });
-    try {
-        await page.goto(selection.replace("/all/", "/ross/"));
-        const trigger = page.getByRole("button", {
-            name: "Details for Impossible Burger"
-        });
-        const dialog = page.getByRole("dialog", { name: "Impossible Burger" });
-        const imageSearchName = "Search for an image of Impossible Burger";
-        const imageSearch = dialog.getByRole("link", {
-            name: imageSearchName
-        });
-        await expect(trigger).toBeVisible();
-        await expect(
-            page.getByRole("link", { name: imageSearchName })
-        ).toHaveCount(0);
-        await page.getByText("Impossible Burger", { exact: true }).click();
-        await expect(dialog).not.toBeVisible();
-        expect(photoRequests).toBe(0);
-        const before = await controlBounds(page);
-        await trigger.press("Enter");
-        await expect(dialog).toBeVisible();
-        await expect(imageSearch).toBeInViewport();
-        await expect(imageSearch).toHaveAttribute(
-            "href",
-            "https://www.google.com/search?q=Impossible%20Burger&tbm=isch"
-        );
-        await expect(
-            dialog.getByText("1 patty per serving", { exact: true })
-        ).toBeVisible();
-        await expect(
-            dialog.getByText("247 kcal", { exact: true })
-        ).toBeVisible();
-        await expect(dialog.getByText("399 mg", { exact: true })).toBeVisible();
-        await expect(dialog.getByText("Fiber", { exact: true })).toHaveCount(0);
-        await expect(dialog.getByText(/Soy protein, sunflower/)).toBeVisible();
-        await expect(
-            dialog.getByRole("button", { name: "Close dish details" })
-        ).toBeFocused();
-        const photo = dialog.getByRole("img", { name: "Impossible Burger" });
-        const photoSize = (await photo.boundingBox())!;
-        photoGate.resolve();
-        await expect
-            .poll(() =>
-                photo.evaluate(
-                    (element) => (element as HTMLImageElement).naturalWidth
-                )
-            )
-            .toBeGreaterThan(0);
-        expectStableBounds([(await photo.boundingBox())!], [photoSize]);
-        expect(photoRequests).toBe(1);
-        expect(menuRequests).toBe(1);
-        expect(
-            await dialog.evaluate(
-                (element) => element.scrollWidth <= element.clientWidth
-            )
-        ).toBe(true);
-        expect(
-            (
-                await new AxeBuilder({ page })
-                    .withTags(["wcag2a", "wcag2aa", "wcag21aa"])
-                    .analyze()
-            ).violations
-        ).toEqual([]);
-        await page.screenshot({ path: "test-results/dish-details-mobile.png" });
-        await page.keyboard.press("Escape");
-        await expect(dialog).not.toBeVisible();
-        await expect(trigger).toBeFocused();
-        expectStableBounds(await controlBounds(page), before);
+    await page.goto(selection.replace("/all/", "/ross/"));
+    const trigger = page.getByRole("button", {
+        name: "Details for Impossible Burger"
+    });
+    const dialog = page.getByRole("dialog", { name: "Impossible Burger" });
+    const imageSearchName = "Search for an image of Impossible Burger";
+    const imageSearch = dialog.getByRole("link", { name: imageSearchName });
+    await expect(trigger).toBeVisible();
+    const infoBounds = (await trigger.boundingBox())!;
+    const filterBounds = (await page
+        .getByRole("button", { name: "Filters", exact: true })
+        .boundingBox())!;
+    const rowBounds = (await page
+        .locator(".menu-item")
+        .filter({ has: trigger })
+        .boundingBox())!;
+    expect(infoBounds).toMatchObject({
+        width: filterBounds.width,
+        height: filterBounds.height
+    });
+    expect(infoBounds.x + infoBounds.width).toBeCloseTo(
+        rowBounds.x + rowBounds.width
+    );
+    expect(infoBounds.y + infoBounds.height / 2).toBeCloseTo(
+        rowBounds.y + rowBounds.height / 2
+    );
+    await expect(trigger.locator("svg")).toHaveAttribute("width", "20");
+    await expect(page.getByRole("link", { name: imageSearchName })).toHaveCount(
+        0
+    );
+    await page.getByText("Impossible Burger", { exact: true }).click();
+    await expect(dialog).not.toBeVisible();
+    const before = await controlBounds(page);
+    await trigger.press("Enter");
+    await expect(dialog).toBeVisible();
+    await expect(imageSearch).toBeInViewport();
+    await expect(imageSearch).toHaveAttribute(
+        "href",
+        "https://www.google.com/search?q=Impossible%20Burger&tbm=isch"
+    );
+    await expect(
+        dialog.getByText("1 patty per serving", { exact: true })
+    ).toBeVisible();
+    await expect(dialog.getByText("247 kcal", { exact: true })).toBeVisible();
+    await expect(dialog.getByText("399 mg", { exact: true })).toBeVisible();
+    await expect(dialog.getByText("Fiber", { exact: true })).toHaveCount(0);
+    const ingredients = dialog
+        .getByRole("list", { name: "Ingredients" })
+        .getByRole("listitem");
+    await expect(ingredients).toHaveCount(3);
+    await expect(ingredients.nth(0)).toHaveText("Button Mushroom");
+    await expect(ingredients.nth(1)).toContainText("Lemon Juice");
+    await expect(
+        ingredients.nth(1).locator(".ingredient-components")
+    ).toHaveText(
+        "(Lemon Juice, Sodium Benzoate, Sodium Metabisulfite, Lemon Oil)"
+    );
+    await expect(ingredients.nth(2)).toHaveText("Pepper.");
+    const body = dialog.getByRole("region", { name: "Dish information" });
+    const disclaimer = body.locator(":scope > :last-child");
+    await expect(disclaimer).toHaveText(
+        "Dietary labels come from menu data and may be incomplete. Check with Dining Services about ingredients and allergens."
+    );
+    await expect(
+        dialog.getByRole("button", { name: "Close dish details" })
+    ).toBeFocused();
+    await expect(dialog.locator("img")).toHaveCount(0);
+    expect(menuRequests).toBe(1);
+    expect(
+        await dialog.evaluate(
+            (element) => element.scrollWidth <= element.clientWidth
+        )
+    ).toBe(true);
+    expect(
+        (
+            await new AxeBuilder({ page })
+                .withTags(["wcag2a", "wcag2aa", "wcag21aa"])
+                .analyze()
+        ).violations
+    ).toEqual([]);
+    await page.screenshot({ path: "test-results/dish-details-mobile.png" });
+    expect(photoRequests).toBe(0);
+    await page.keyboard.press("Tab");
+    await expect(body).toBeFocused();
+    await page.keyboard.press("End");
+    await expect(disclaimer).toBeInViewport();
+    await page.keyboard.press("Escape");
+    await expect(dialog).not.toBeVisible();
+    await expect(trigger).toBeFocused();
+    expectStableBounds(await controlBounds(page), before);
 
-        await page
-            .getByRole("button", { name: "Details for Garlic Bread Sticks" })
-            .click();
-        const basicDialog = page.getByRole("dialog", {
-            name: "Garlic Bread Sticks"
-        });
-        await expect(basicDialog.getByText("Wheat")).toBeVisible();
-        await expect(
-            basicDialog.getByRole("link", {
-                name: "Search for an image of Garlic Bread Sticks"
-            })
-        ).toBeVisible();
-    } finally {
-        photoGate.resolve();
-    }
+    await page
+        .getByRole("button", { name: "Details for Garlic Bread Sticks" })
+        .click();
+    const basicDialog = page.getByRole("dialog", {
+        name: "Garlic Bread Sticks"
+    });
+    await expect(basicDialog.getByText("Wheat")).toBeVisible();
+    await expect(
+        basicDialog.getByRole("link", {
+            name: "Search for an image of Garlic Bread Sticks"
+        })
+    ).toBeVisible();
 });
 
 test("shows label pictograms, groups local ingredients, and opens built-in hours", async ({
@@ -657,7 +686,9 @@ test("shows label pictograms, groups local ingredients, and opens built-in hours
             })
     ).toBeVisible();
     await expect(page.getByText(/Tap once to require/)).toHaveCount(0);
-    await page.getByRole("button", { name: "Done", exact: true }).click();
+    await page
+        .getByRole("button", { name: "Close filters", exact: true })
+        .click();
     const trigger = page.getByRole("button", {
         name: "View Ross dining hours",
         exact: true

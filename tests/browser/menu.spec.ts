@@ -36,7 +36,9 @@ test("shows a saved menu immediately during a slow background request", async ({
     await page
         .getByRole("button", { name: "Vegan: included", exact: true })
         .click();
-    await page.getByRole("button", { name: "Done", exact: true }).click();
+    await page
+        .getByRole("button", { name: "Close filters", exact: true })
+        .click();
     await page.evaluate(async () => {
         await navigator.serviceWorker.ready;
     });
@@ -70,7 +72,9 @@ test("shows a saved menu immediately during a slow background request", async ({
     await expect(
         page.getByRole("button", { name: "Vegan: only", exact: true })
     ).toBeVisible();
-    await page.getByRole("button", { name: "Done", exact: true }).click();
+    await page
+        .getByRole("button", { name: "Close filters", exact: true })
+        .click();
     await page.screenshot({
         path: "test-results/menu-desktop.png",
         fullPage: true
