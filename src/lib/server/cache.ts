@@ -17,6 +17,7 @@ export type CacheStatus = "miss" | "hit" | "stale";
 export interface SnapshotResult {
     snapshot: WeekSnapshot;
     status: CacheStatus;
+    refreshError?: unknown;
 }
 
 export const createMenuCacheKey = ({
@@ -128,6 +129,6 @@ async function refreshWeek(
                 )
             })
             .catch(() => undefined);
-        return { snapshot, status: "stale" };
+        return { snapshot, status: "stale", refreshError: error };
     }
 }

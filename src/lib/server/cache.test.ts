@@ -24,6 +24,7 @@ const query = {
     place: "proctor-dining-hall",
     meal: "lunch"
 };
+const queryWeekPath = "/proctor-dining-hall/menu-type/lunch/2026/07/19/";
 const good = {
     sections: [
         { title: "Main", items: [{ id: 1, position: 1, name: "Saved soup" }] }
@@ -211,5 +212,72 @@ describe("weekly snapshots using real local KV", () => {
         expect(fetcher).toHaveBeenCalledTimes(16);
         await refreshMenus(store, new Date("2026-07-21T16:00:00Z"), fetcher);
         expect(fetcher).toHaveBeenCalledTimes(32);
+    });
+
+    it("can retry just the timed-out week and replace the saved menu", async () => {
+        await seed(menuPolicy.refreshMs + 1_000);
+        let attempts = 0;
+        const fetcher = vi.fn(async (input: RequestInfo | URL) => {
+            if (String(input).includes(queryWeekPath)) {
+                attempts++;
+                if (attempts === 1) {
+                    throw new DOMException(
+                        "The operation timed out.",
+                        "TimeoutError"
+                    );
+                }
+            }
+            return Response.json(weekForUrl(input));
+        });
+
+        await refreshMenus(store, new Date(Date.now()), fetcher, {
+            retryTimeouts: true
+        });
+
+        expect(attempts).toBe(2);
+        expect(fetcher).toHaveBeenCalledTimes(17);
+        const snapshot = await store.get<WeekSnapshot>(
+            createMenuCacheKey(query),
+            "json"
+        );
+        expect(snapshot?.days[query.dateStr].sections[0].items[0].name).toBe(
+            "Soup"
+        );
+        expect(snapshot?.retryAfter).toBeUndefined();
+    });
+
+    it("reports the meal, week, and cause when the retry also times out", async () => {
+        const saved = await seed(menuPolicy.refreshMs + 1_000);
+        const timeout = new DOMException(
+            "The operation timed out.",
+            "TimeoutError"
+        );
+        const fetcher = vi.fn(async (input: RequestInfo | URL) => {
+            if (String(input).includes(queryWeekPath)) {
+                throw timeout;
+            }
+            return Response.json(weekForUrl(input));
+        });
+
+        await expect(
+            refreshMenus(store, new Date(Date.now()), fetcher, {
+                retryTimeouts: true
+            })
+        ).rejects.toMatchObject({
+            errors: [
+                {
+                    message:
+                        "Could not refresh Proctor lunch for the week of 2026-07-19. The operation timed out.",
+                    cause: timeout
+                }
+            ]
+        });
+        expect(fetcher).toHaveBeenCalledTimes(17);
+        const snapshot = await store.get<WeekSnapshot>(
+            createMenuCacheKey(query),
+            "json"
+        );
+        expect(snapshot?.fetchedAt).toBe(saved.fetchedAt);
+        expect(snapshot?.days).toEqual(saved.days);
     });
 });
