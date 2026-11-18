@@ -1,8 +1,11 @@
 import { expect, test } from "@playwright/test";
 import { menusFixture, menuHeaders, soupSections } from "./fixtures";
 
+test.use({ serviceWorkers: "block" });
+
 for (const { entry, savedPlace } of [
     { entry: "/", savedPlace: undefined },
+    { entry: "/ross/lunch", savedPlace: undefined },
     { entry: "/ross/lunch/2026-07-21", savedPlace: undefined },
     { entry: "/", savedPlace: "ross-dining-hall" }
 ]) {
@@ -50,15 +53,20 @@ for (const { entry, savedPlace } of [
         const initialMeal = await mealGroup
             .getByRole("button", { pressed: true })
             .textContent();
-        await expect(page).toHaveURL(
-            /\/(proctor|ross)\/(breakfast|lunch|dinner)\/\d{4}-\d{2}-\d{2}$/
-        );
+        await expect(page).toHaveURL((url) => url.pathname === entry);
         const originalUrl = page.url();
         expect(errors).toEqual([]);
         await page
             .getByRole("button", { name: "Atwater", exact: true })
             .click();
-        await expect(page).toHaveURL(/\/atwater\//);
+        const date = entry.split("/")[3];
+        await expect(page).toHaveURL(
+            new RegExp(
+                "/atwater/(breakfast|lunch|dinner)" +
+                    (date ? "/" + date : "") +
+                    "$"
+            )
+        );
         await page.goBack();
         await expect(page).toHaveURL(originalUrl);
         await expect(
@@ -81,3 +89,63 @@ for (const { entry, savedPlace } of [
         ).toEqual([]);
     });
 }
+
+test("Today bookmarks follow Eastern midnight while dated history stays fixed", async ({
+    page,
+    context
+}) => {
+    let now = new Date("2026-11-18T04:59:00Z");
+    await page.clock.setFixedTime(now);
+    await context.route("**/api/menus?**", (route) => {
+        const date = new URL(route.request().url()).searchParams.get("date")!;
+        const day = menusFixture(date, () => soupSections("Soup for " + date));
+        day.fetchedAt = now.getTime();
+        return route.fulfill({
+            status: 200,
+            headers: {
+                ...menuHeaders(date),
+                "X-Menu-Fetched-At": now.toISOString()
+            },
+            json: day
+        });
+    });
+    const todayUrl = "/ross/lunch";
+    await page.goto(todayUrl);
+    await expect(
+        page.getByText("Soup for 2026-11-17", { exact: true })
+    ).toBeVisible();
+    await expect(page).toHaveURL((url) => url.pathname === todayUrl);
+
+    await page
+        .getByRole("button", { name: "Previous day", exact: true })
+        .click();
+    const pinnedUrl = todayUrl + "/2026-11-16";
+    await expect(page).toHaveURL((url) => url.pathname === pinnedUrl);
+    await expect(
+        page.getByText("Soup for 2026-11-16", { exact: true })
+    ).toBeVisible();
+
+    now = new Date("2026-11-18T05:01:00Z");
+    await page.clock.setFixedTime(now);
+    await page
+        .getByRole("button", { name: "Jump to today", exact: true })
+        .click();
+    await expect(page).toHaveURL((url) => url.pathname === todayUrl);
+    await expect(
+        page.getByText("Soup for 2026-11-18", { exact: true })
+    ).toBeVisible();
+    await page.goBack();
+    await expect(page).toHaveURL((url) => url.pathname === pinnedUrl);
+    await expect(
+        page.getByText("Soup for 2026-11-16", { exact: true })
+    ).toBeVisible();
+    await page.reload();
+    await expect(
+        page.getByText("Soup for 2026-11-16", { exact: true })
+    ).toBeVisible();
+    await page.goForward();
+    await expect(page).toHaveURL((url) => url.pathname === todayUrl);
+    await expect(
+        page.getByText("Soup for 2026-11-18", { exact: true })
+    ).toBeVisible();
+});

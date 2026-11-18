@@ -12,6 +12,7 @@ import { GET } from "./+server";
 import { weekForUrl } from "../../../../tests/menu-fixtures";
 import { menuSlots, decodeMenus } from "$lib/menu/daily-menus";
 import { createMenuCacheKey } from "$lib/server/cache";
+import { campusToday, shiftDate } from "$lib/menu/dates";
 
 let mf: Miniflare;
 let kv: Awaited<ReturnType<Miniflare["getKVNamespace"]>>;
@@ -137,21 +138,41 @@ describe("daily menu API", () => {
     });
 
     it("uses one original age for the date based on the oldest contributing snapshot", async () => {
-        await requestMenus();
+        const date = campusToday();
+        await requestMenus(date);
         const key = createMenuCacheKey({
             ...menuSlots[0],
-            dateStr: "2026-07-21"
+            dateStr: date
         });
         const snapshot = (await kv.get(key, "json")) as Record<string, unknown>;
         snapshot.fetchedAt = Date.now() - 7 * 3_600_000;
         snapshot.retryAfter = Date.now() + 60_000;
         await kv.put(key, JSON.stringify(snapshot));
-        const response = await requestMenus();
-        const dailyMenus = decodeMenus(await response.json(), "2026-07-21");
+        const response = await requestMenus(date);
+        const dailyMenus = decodeMenus(await response.json(), date);
         expect(dailyMenus.fetchedAt).toBe(snapshot.fetchedAt);
         expect(dailyMenus.fallback).toBe(true);
         for (const menu of Object.values(dailyMenus.menus))
             expect(menu).not.toHaveProperty("fetchedAt");
         expect(response.headers.get("Cache-Control")).toContain("max-age=0");
+    });
+
+    it("returns archived menus with their original fetch age without contacting Nutrislice", async () => {
+        const date = shiftDate(campusToday(), -1);
+        await requestMenus(date);
+        const key = createMenuCacheKey({ ...menuSlots[0], dateStr: date });
+        const snapshot = (await kv.get(key, "json")) as Record<string, unknown>;
+        const fetchedAt = Date.now() - 30 * 86_400_000;
+        await kv.put(key, JSON.stringify({ ...snapshot, fetchedAt }));
+        const upstream = vi.fn(async () => new Response(null, { status: 503 }));
+        const response = await requestMenus(date, upstream);
+        expect(response.status).toBe(200);
+        expect(response.headers.get("X-Menu-Fetched-At")).toBe(
+            new Date(fetchedAt).toISOString()
+        );
+        expect(decodeMenus(await response.json(), date).fetchedAt).toBe(
+            fetchedAt
+        );
+        expect(upstream).not.toHaveBeenCalled();
     });
 });

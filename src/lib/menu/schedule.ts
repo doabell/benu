@@ -1,7 +1,9 @@
+import { CAMPUS_TIME_ZONE, campusToday } from "./dates";
+
+export { campusToday } from "./dates";
+
 export const DINING_HOURS_URL =
     "https://www.middlebury.edu/dining-services/general-information";
-
-export const CAMPUS_TIME_ZONE = "America/New_York";
 
 interface MealWindow {
     meal: string;
@@ -75,13 +77,6 @@ const weekdayFormatter = new Intl.DateTimeFormat("en-US", {
     weekday: "short",
     timeZone: CAMPUS_TIME_ZONE
 });
-const dateFormatter = new Intl.DateTimeFormat("en-US", {
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    timeZone: CAMPUS_TIME_ZONE
-});
-
 const getTimeParts = (date: Date): { hour: number; minute: number } => {
     const parts = timeFormatter.formatToParts(date);
     const hourPart = Number(parts.find((part) => part.type === "hour")?.value);
@@ -233,14 +228,6 @@ const openingLabel = (
         "Saturday"
     ][(weekday + opening.dayOffset) % 7];
     return `Should open ${time} ${day}`;
-};
-
-export const campusToday = (date = new Date()): string => {
-    const parts = dateFormatter.formatToParts(date);
-    const year = parts.find((part) => part.type === "year")?.value;
-    const month = parts.find((part) => part.type === "month")?.value;
-    const day = parts.find((part) => part.type === "day")?.value;
-    return `${year}-${month}-${day}`;
 };
 
 export function getSuggestedMeal(

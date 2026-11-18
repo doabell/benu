@@ -11,7 +11,8 @@ describe("menu dates and cache age", () => {
     });
 
     it("expires the original fetch time regardless of Date or repeated cache writes", () => {
-        const now = Date.now();
+        const now = Date.parse("2026-11-17T16:00:00Z");
+        const today = "2026-11-17";
         const response = (age: number) =>
             new Response("[]", {
                 headers: {
@@ -19,14 +20,40 @@ describe("menu dates and cache age", () => {
                     Date: new Date(now).toUTCString()
                 }
             });
-        expect(isUsableMenuResponse(response(1000), now)).toBe(true);
+        expect(isUsableMenuResponse(response(1000), today, now)).toBe(true);
         expect(
             isUsableMenuResponse(
                 response(menuPolicy.offlineSeconds * 1000),
+                today,
                 now
             )
         ).toBe(false);
-        expect(isUsableMenuResponse(new Response("[]"), now)).toBe(false);
-        expect(isUsableMenuResponse(response(-1000), now)).toBe(false);
+        expect(isUsableMenuResponse(new Response("[]"), today, now)).toBe(
+            false
+        );
+        expect(isUsableMenuResponse(response(-1000), today, now)).toBe(false);
+    });
+
+    it("allows older saved menus only after the date ends in Eastern Time", () => {
+        const midnight = Date.parse("2026-11-18T05:00:00Z");
+        const response = (age: number) =>
+            new Response("[]", {
+                headers: {
+                    [MENU_FETCHED_AT]: new Date(midnight - age).toISOString()
+                }
+            });
+        const saved = response(25 * 3_600_000);
+        expect(isUsableMenuResponse(saved, "2026-11-17", midnight - 1)).toBe(
+            false
+        );
+        expect(isUsableMenuResponse(saved, "2026-11-17", midnight)).toBe(true);
+        expect(isUsableMenuResponse(saved, "2026-11-18", midnight)).toBe(false);
+        expect(
+            isUsableMenuResponse(
+                response(menuPolicy.archiveSeconds * 1000),
+                "2026-11-17",
+                midnight
+            )
+        ).toBe(false);
     });
 });

@@ -25,7 +25,7 @@ For deterministic development without Nutrislice access:
 bun run refresh:local --fixture
 ```
 
-The fixture puts a simple vegan soup on every menu in the current and following weeks. Both commands use the same local KV as the app. Local development fills expired/missing menus on access; the production scheduler is a separate Worker.
+The fixture puts a vegan soup with ingredients and nutrition on every menu in the current and following weeks. Both commands use the same local KV as the app. Local development fills expired/missing menus on access; the production scheduler is a separate Worker.
 
 Checks:
 
@@ -45,9 +45,15 @@ Set `BENU_TEST_PORT` to use a different development test port if 5174 is unavail
 
 ## Browsing menus
 
-Choose a hall, then a meal and date. Menu URLs use `/atwater/breakfast/2026-11-17` (or `/all/lunch/2026-11-17` for comparison). Opening `/` uses saved preferences and replaces the URL once the router is ready. One request loads the whole date: eight supported hall/meal combinations (Atwater has no breakfast). The browser decodes the response once and reuses it when switching meals or halls. **All halls** is available when the viewport is at least 72rem wide and uses equal columns with the same date and filters. Narrow screens show the last individual hall instead. A saved date supplies the offline fallback. Switching halls keeps the selected meal; a hall that does not offer it shows its available meals instead of silently changing the selection.
+Choose a hall, then a meal and date. Bookmark `/` to open today with your saved preferences, or an undated route such as `/ross/lunch` to open a specific hall and meal on today's Eastern date. Choosing a different day adds the date to the URL, as in `/ross/lunch/2026-11-17`. Jump to today returns to the undated route.
 
-The filter icon between Jump to today and the theme control opens a grouped dialog. Its headings separate dietary preferences, sourcing, meat and seafood, dairy and alcohol, other allergens, and nuts. Filters cycle through neutral, required (highlighted and underlined), and excluded (struck through). Multiple required labels must all match; any excluded label removes a dish. Preferences stay on the device, and a badge on the icon shows the active count. Clear filters is available in the dialog and in an empty filtered menu. The dialog scrolls independently while its close controls remain visible.
+One request loads the whole date: eight supported hall/meal combinations (Atwater has no breakfast). The browser decodes the response once and reuses it when switching meals or halls. **All halls** is available when the viewport is at least 72rem wide and uses equal columns with the same date and filters. Narrow screens show the last individual hall instead. A saved date supplies the offline fallback. Switching halls keeps the selected meal; a hall that does not offer it shows its available meals instead of silently changing the selection.
+
+Select a dish row to see its listed serving size, nutrition, and ingredients when Nutrislice supplies them. Compound ingredients show their components together. Details are saved with the menu for offline use. The image icon opens a separate image search when online.
+
+Search sits directly before Filters in the toolbar. It matches words across dish names, descriptions, ingredients, labels, serving sizes, and section headings in the selected view.
+
+Filters groups dietary preferences, sourcing, meat and seafood, dairy and alcohol, other allergens, and nuts. Add a word or phrase in Custom filters to match dish text. Both labels and custom terms cycle through on (neutral), off (struck through), and only (highlighted and underlined). All required filters must match, and any excluded filter removes a dish. Custom terms and filter states are saved in localStorage. Clear filters resets their states and keeps the saved terms. The dialog scrolls independently while its close controls remain visible.
 
 Hours describe the selected meal's regular schedule for that date. Times always represent Eastern wall time; the browser locale chooses 12- or 24-hour formatting. The menu labels EST/EDT for its selected date, and the weekly hours dialog labels Eastern Time and keeps its top fixed when switching halls. The built-in dialog uses the same hardcoded schedule, includes continental breakfast as a row for Proctor and Ross, and links to Dining Services for exceptions. Saved-menu age appears when offline or using a fallback. A keyboard-only Skip to menu link bypasses the controls, which stay available while scrolling. Selection changes return to the pinned menu controls without revealing the brand header; Jump to today sits beside the theme control.
 
@@ -61,18 +67,20 @@ Edit `menu.config.json` to configure the policy:
 | ------------------- | ------- | ----------------------------------------------------------------------- |
 | `refreshHours`      | 6       | Nutrislice refresh interval; supports 1, 2, 3, 4, 6, 8, 12, or 24 hours |
 | `browserCacheHours` | 6       | Browser HTTP cache freshness                                            |
-| `offlineHours`      | 24      | Maximum age of a saved snapshot or offline menu                         |
+| `offlineHours`      | 24      | Maximum age of a saved menu for today or a future date                  |
+| `archiveDays`       | 365     | KV retention and freshness limit for past menus                         |
 | `prefetchWeeks`     | 2       | Current and following week; supports 1 or 2                             |
 
 `bun run build` generates `.wrangler/refresh.json` from this policy and `wrangler.jsonc`. The refresh Worker and API share the same policy and KV namespace.
 
 - One upstream request stores all seven returned dates per hall/meal. Eight hall/meal pairs across two weeks means sixteen Nutrislice requests per scheduled refresh, or 64/day with defaults.
-- Requests for other dates and checks of other halls reuse those snapshots. Missing/expired weeks load on demand, with concurrent requests deduplicated within a Worker instance.
+- Refreshes send the saved upstream ETag when available. Nutrislice's `304 Not Modified` confirms the saved week is current without sending or parsing another body.
+- Requests for other dates and checks of other halls reuse those snapshots. After a date ends in Eastern Time, saved published menus and confirmed closures are served for up to a year from their last successful fetch without contacting Nutrislice. A historical miss fetches its week on demand. Concurrent upstream requests deduplicate within a Worker instance.
 - `/api/menus?date=YYYY-MM-DD` is the only menu endpoint. It reads each weekly snapshot once and returns the selected day's menus together. In-memory results and in-flight requests are shared across hall/meal switches for six hours; the PWA keeps at most 32 saved dates.
-- Refresh failures retain the last successful snapshot, with a five-minute retry backoff and no extension to its original one-day lifetime.
+- Refresh failures retain the last successful snapshot and use a five-minute retry backoff while it is still usable. A failed check does not reset the original fetch time or extend KV retention.
 - Browser responses are fresh for six hours and support conditional requests with ETags. Shared HTTP caching is disabled; KV supplies the shared storage without another freshness window.
 - The PWA shows saved menus immediately and revalidates on access. Changed responses update the visible menu without clearing it, resetting filters, or moving scroll. There is no menu polling timer or refresh prompt.
-- The entire date has one original `fetchedAt`, taken from its oldest contributing source snapshot. The UI and service worker apply the one-day limit to that date together; cache writes cannot renew its age.
+- The entire date has one original `fetchedAt`, taken from its oldest contributing source snapshot. Today and future dates expire after one day. Saved past dates use the archive limit, including offline, within the same 32-date cache.
 - Versioned assets are precached. Documents use network-first with a precached offline fallback. A first visit without a saved menu needs a network connection.
 - Service-worker updates take control automatically on a subsequent visit without forcing the open page to reload.
 

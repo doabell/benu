@@ -25,6 +25,10 @@ const menuUrl = (query: MenuQuery): string => {
     )}/${query.dateStr.slice(0, 4)}/${month}/${day}/?format=json`;
 };
 
+// Optional dish fields can be blank or malformed even when the menu is valid.
+const detailText = z.string().trim().nullish().catch(undefined);
+const nutrientAmount = z.number().nonnegative().nullish().catch(undefined);
+
 const itemSchema = z
     .object({
         id: z.number().int().nullable(),
@@ -40,6 +44,31 @@ const itemSchema = z
                     .string()
                     .nullish()
                     .transform((value) => value ?? undefined),
+                ingredients: detailText,
+                image_url: detailText,
+                image_alt_text: detailText,
+                has_nutrition_info: z.boolean().optional().catch(undefined),
+                serving_size_info: z
+                    .object({
+                        serving_size_amount: z
+                            .union([z.string().trim(), z.number().positive()])
+                            .nullish()
+                            .catch(undefined),
+                        serving_size_unit: detailText
+                    })
+                    .nullish()
+                    .catch(undefined),
+                rounded_nutrition_info: z
+                    .object({
+                        calories: nutrientAmount,
+                        g_protein: nutrientAmount,
+                        g_carbs: nutrientAmount,
+                        g_fat: nutrientAmount,
+                        g_fiber: nutrientAmount,
+                        mg_sodium: nutrientAmount
+                    })
+                    .nullish()
+                    .catch(undefined),
                 icons: z
                     .object({
                         food_icons: z
@@ -80,6 +109,7 @@ const weekSchema = z.object({
 export interface WeekMenu {
     days: Record<string, MenuFetchResult>;
     sourceUpdatedAt?: string;
+    sourceEtag?: string;
 }
 
 export const unavailableMenu = (): MenuFetchResult => ({
@@ -89,13 +119,24 @@ export const unavailableMenu = (): MenuFetchResult => ({
 
 export const fetchWeekMenu = async (
     query: MenuQuery,
-    fetcher: typeof fetch
+    fetcher: typeof fetch,
+    previous?: WeekMenu
 ): Promise<WeekMenu> => {
+    const headers = new Headers({ accept: "application/json" });
+    if (previous?.sourceEtag) headers.set("If-None-Match", previous.sourceEtag);
     const response = await fetcher(menuUrl(query), {
-        headers: { accept: "application/json" },
+        headers,
         signal: AbortSignal.timeout(UPSTREAM_TIMEOUT_MS)
     });
 
+    const sourceEtag = response.headers.get("ETag") ?? undefined;
+    if (response.status === 304 && previous?.sourceEtag) {
+        return {
+            days: previous.days,
+            sourceUpdatedAt: previous.sourceUpdatedAt,
+            sourceEtag: sourceEtag ?? previous.sourceEtag
+        };
+    }
     if (!response.ok) {
         throw new Error(`Nutrislice returned ${response.status}`);
     }
@@ -127,5 +168,5 @@ export const fetchWeekMenu = async (
                 : unavailableMenu();
         }
     }
-    return { days, sourceUpdatedAt: data.last_updated };
+    return { days, sourceUpdatedAt: data.last_updated, sourceEtag };
 };

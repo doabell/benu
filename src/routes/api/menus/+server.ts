@@ -3,7 +3,7 @@ import { json } from "@sveltejs/kit";
 import { getCachedMenus } from "$lib/server/daily-menus";
 import { encodeMenus, isUsableMenus } from "$lib/menu/daily-menus";
 import { isValidDateString } from "$lib/menu/validation";
-import { menuPolicy } from "$lib/menu/policy";
+import { menuLifetimeSeconds, menuPolicy } from "$lib/menu/policy";
 
 export const GET: RequestHandler = async ({
     url,
@@ -40,7 +40,7 @@ export const GET: RequestHandler = async ({
                       0,
                       Math.floor(
                           (day.fetchedAt +
-                              menuPolicy.offlineSeconds * 1000 -
+                              menuLifetimeSeconds(dateStr, now) * 1000 -
                               now) /
                               1000
                       )

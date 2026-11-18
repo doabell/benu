@@ -2,6 +2,8 @@ import { halls } from "./data";
 import { isValidDateString } from "./validation";
 import type { MenuQuery } from "./types";
 
+export type MenuLocation = Omit<MenuQuery, "dateStr"> & { dateStr?: string };
+
 export const hallSlug = (place: string): string =>
     place === "all"
         ? "all"
@@ -10,12 +12,14 @@ export const menuPath = ({
     place,
     meal,
     dateStr
-}: MenuQuery): `/${string}/${string}/${string}` =>
-    `/${hallSlug(place)}/${meal}/${dateStr}`;
+}: MenuLocation): `/${string}/${string}` =>
+    dateStr
+        ? `/${hallSlug(place)}/${meal}/${dateStr}`
+        : `/${hallSlug(place)}/${meal}`;
 
-export function selectionFromPath(pathname: string): MenuQuery | undefined {
+export function selectionFromPath(pathname: string): MenuLocation | undefined {
     const parts = pathname.split("/");
-    if (parts.length !== 4) return;
+    if (parts.length !== 3 && parts.length !== 4) return;
     const [, slug, meal, dateStr] = parts;
     const place =
         slug === "all"
@@ -25,8 +29,8 @@ export function selectionFromPath(pathname: string): MenuQuery | undefined {
     if (
         !place ||
         !halls[0].options.some((option) => option.id === meal) ||
-        !isValidDateString(dateStr)
+        (dateStr !== undefined && !isValidDateString(dateStr))
     )
         return;
-    return { place, meal, dateStr };
+    return dateStr === undefined ? { place, meal } : { place, meal, dateStr };
 }

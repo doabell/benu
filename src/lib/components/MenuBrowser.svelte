@@ -1,14 +1,24 @@
 <script lang="ts">
     import { onMount } from "svelte";
-    import { LayoutGrid, ListFilter, Moon, Sun, WifiOff } from "@lucide/svelte";
+    import {
+        CalendarCheck,
+        LayoutGrid,
+        ListFilter,
+        Moon,
+        Sun,
+        WifiOff
+    } from "@lucide/svelte";
     import { toggleMode } from "$lib/theme";
     import HallIcon from "$lib/components/HallIcon.svelte";
     import MenuPanel from "$lib/components/MenuPanel.svelte";
+    import MenuSearch from "$lib/components/MenuSearch.svelte";
     import DateSelector from "$lib/components/DateSelector.svelte";
     import HoursDialog from "$lib/components/HoursDialog.svelte";
     import FilterDialog from "$lib/components/FilterDialog.svelte";
+    import DishDialog from "$lib/components/DishDialog.svelte";
     import { halls } from "$lib/menu/data";
-    import { campusToday, getSuggestedMeal } from "$lib/menu/schedule";
+    import { campusToday } from "$lib/menu/dates";
+    import { getSuggestedMeal } from "$lib/menu/schedule";
     import { isValidDateString } from "$lib/menu/validation";
     import {
         menusRequestUrl,
@@ -28,30 +38,41 @@
         emptyMenu,
         filterNames,
         filterSections,
+        isFilterState,
+        nextFilterState,
+        normalizeMenuText,
+        parseCustomFilters,
         savedMenuAge,
-        type FilterState,
+        type CustomFilter,
         type FilterStates,
         type HallMenuState
     } from "$lib/menu/view";
-    import { afterNavigate, pushState, replaceState } from "$app/navigation";
-    import { menuPath, selectionFromPath } from "$lib/menu/paths";
+    import { pushState } from "$app/navigation";
+    import {
+        menuPath,
+        selectionFromPath,
+        type MenuLocation
+    } from "$lib/menu/paths";
     import { resolve } from "$app/paths";
-    import type { MenuQuery } from "$lib/menu/types";
+    import type { MenuItem, MenuQuery } from "$lib/menu/types";
 
-    const today = campusToday;
     const meals = halls[0].options;
     const filterStorageKey = "filterStates";
+    const customFilterStorageKey = "customFilters";
     const mealEmojis: Record<string, string> = {
         breakfast: "🍳",
         lunch: "🥪",
         dinner: "🍽️"
     };
-    let date = $state(today());
+    let date = $state(campusToday());
+    let pinnedDate = $state(false);
     let place = $state(halls[0].id);
     let meal = $state(meals[0].id);
     let menus = $state<Record<string, HallMenuState>>({});
     let loadedMenus = $state<DailyMenus>();
     let filterStates = $state<FilterStates>({});
+    let customFilters = $state<CustomFilter[]>([]);
+    let searchQuery = $state("");
     let online = $state(true);
     let currentTime = $state(new Date());
     let filtersOpen = $state(false);
@@ -62,8 +83,8 @@
     let controlsAnchor: HTMLDivElement;
     let hoursDialog: { show: (hallId: string) => void };
     let filterDialog: { show: () => void };
+    let dishDialog: { show: (item: MenuItem) => Promise<void> };
     let requestNumber = 0;
-    let routerReady = false;
     // eslint-disable-next-line svelte/prefer-svelte-reactivity -- Timer handles are never rendered.
     const loadingTimers = new Map<string, number>();
 
@@ -82,14 +103,19 @@
         meal
     });
     const campusDate = $derived(campusToday(currentTime));
+    const canJumpToToday = $derived(pinnedDate || date !== campusDate);
     const activeHalls = $derived(hallsFor(effectivePlace));
+    const hasSearch = $derived(!!normalizeMenuText(searchQuery));
     const views = $derived(
         activeHalls.map((hall) => {
             const menu = menus[hall.id] ?? emptyMenu();
             return {
                 hall,
                 menu,
-                sections: filterSections(menu.sections, filterStates)
+                sections: filterSections(menu.sections, filterStates, {
+                    query: searchQuery,
+                    customFilters
+                })
             };
         })
     );
@@ -97,7 +123,8 @@
         filterNames.filter(
             (name) =>
                 filterStates[name] === "off" || filterStates[name] === "only"
-        ).length
+        ).length +
+            customFilters.filter((filter) => filter.state !== "on").length
     );
     const hasActiveFilters = $derived(activeFilterCount > 0);
     const hasMenus = $derived(
@@ -125,35 +152,55 @@
             return Object.fromEntries(
                 Object.entries(parsed).filter(
                     ([name, state]) =>
-                        filterNames.includes(name) &&
-                        (state === "on" || state === "only" || state === "off")
+                        filterNames.includes(name) && isFilterState(state)
                 )
             ) as FilterStates;
         } catch {
             return {};
         }
     }
-    function rememberSelection(selection: MenuQuery): void {
+    function preferredLocation(now: Date): MenuLocation {
+        const storedPlace = readPreference("place");
+        const preferredPlace = validPlace(storedPlace)
+            ? storedPlace
+            : halls[0].id;
+        const storedMeal =
+            readPreference("selectionDay") === campusToday(now)
+                ? readPreference("meal")
+                : null;
+        return {
+            place: preferredPlace,
+            meal: validMeal(storedMeal)
+                ? storedMeal
+                : (getSuggestedMeal(
+                      preferredPlace === "all" ? halls[0].id : preferredPlace,
+                      now
+                  ) ?? meals[0].id)
+        };
+    }
+    function applyLocation(next: MenuLocation, now: Date): boolean {
+        const nextDate = next.dateStr ?? campusToday(now);
+        const nextPinned = next.dateStr !== undefined;
+        const changed =
+            next.place !== place ||
+            next.meal !== meal ||
+            nextDate !== date ||
+            nextPinned !== pinnedDate;
+        currentTime = now;
+        place = next.place;
+        if (place !== "all") lastHall = place;
+        meal = next.meal;
+        date = nextDate;
+        pinnedDate = nextPinned;
+        return changed;
+    }
+    function rememberSelection(selection: MenuLocation): void {
         writePreference("place", selection.place);
         writePreference("meal", selection.meal);
-        writePreference("selectionDay", today());
+        writePreference("selectionDay", campusToday());
         if (selection.place !== "all")
             writePreference("singleHall", selection.place);
     }
-    function saveSelection(selection: MenuQuery, replace = false): void {
-        rememberSelection(selection);
-        const path = menuPath(selection);
-        if (path !== window.location.pathname || window.location.search)
-            (replace ? replaceState : pushState)(resolve(path), {});
-    }
-    afterNavigate(() => {
-        // SvelteKit 2 sets its initialized flag after the initial hooks return.
-        queueMicrotask(() => {
-            routerReady = true;
-            if (ready && window.location.pathname === "/")
-                saveSelection({ place, meal, dateStr: date }, true);
-        });
-    });
     function displayDay(
         day: DailyMenus,
         selection: MenuQuery,
@@ -231,10 +278,18 @@
         const day = await fetchMenus(selection.dateStr, force);
         if (currentRequest === requestNumber) displayDay(day, selection, true);
     }
-    function changeSelection(): void {
+    function changeSelection(now = new Date()): void {
+        currentTime = now;
+        if (!pinnedDate) date = campusToday(now);
         const selection = currentSelection();
         place = selection.place;
-        saveSelection(selection);
+        rememberSelection(selection);
+        const path = menuPath({
+            ...selection,
+            dateStr: pinnedDate ? date : undefined
+        });
+        if (path !== window.location.pathname || window.location.search)
+            pushState(resolve(path), {});
         void loadMenu(selection);
     }
     function prepareSelection(): void {
@@ -244,11 +299,21 @@
         if (top < 0)
             window.scrollTo({ top: window.scrollY + top, behavior: "instant" });
     }
-    function selectDate(nextDate: string): void {
-        if (!isValidDateString(nextDate) || nextDate === date) return;
+    function selectDate(nextDate: string, now = new Date()): void {
+        const nextPinned = nextDate !== campusToday(now);
+        if (
+            !isValidDateString(nextDate) ||
+            (nextDate === date && nextPinned === pinnedDate)
+        )
+            return;
         prepareSelection();
         date = nextDate;
-        changeSelection();
+        pinnedDate = nextPinned;
+        changeSelection(now);
+    }
+    function jumpToToday(): void {
+        const now = new Date();
+        selectDate(campusToday(now), now);
     }
     function selectPlace(nextPlace: string): void {
         if (
@@ -269,20 +334,34 @@
         changeSelection();
     }
     function cycleFilter(name: string): void {
-        const next: Record<FilterState, FilterState> = {
-            on: "only",
-            only: "off",
-            off: "on"
-        };
         filterStates = {
             ...filterStates,
-            [name]: next[filterStates[name] ?? "on"]
+            [name]: nextFilterState[filterStates[name] ?? "on"]
         };
         writePreference(filterStorageKey, JSON.stringify(filterStates));
+    }
+    function saveCustomFilters(filters: CustomFilter[]): void {
+        customFilters = filters;
+        writePreference(
+            customFilterStorageKey,
+            filters.length ? JSON.stringify(filters) : undefined
+        );
+    }
+    function cycleCustomFilter(term: string): void {
+        saveCustomFilters(
+            customFilters.map((filter) =>
+                filter.term === term
+                    ? { ...filter, state: nextFilterState[filter.state] }
+                    : filter
+            )
+        );
     }
     function resetFilters(): void {
         filterStates = {};
         writePreference(filterStorageKey);
+        saveCustomFilters(
+            customFilters.map((filter) => ({ ...filter, state: "on" }))
+        );
     }
 
     onMount(() => {
@@ -292,25 +371,17 @@
         const storedHall = readPreference("singleHall");
         if (storedHall && halls.some((hall) => hall.id === storedHall))
             lastHall = storedHall;
-        const requested = selectionFromPath(window.location.pathname);
-        const storedPlace = requested?.place ?? readPreference("place");
-        place = validPlace(storedPlace) ? storedPlace : halls[0].id;
-        if (place !== "all") lastHall = place;
-        const requestedDate = requested?.dateStr;
-        date =
-            requestedDate && isValidDateString(requestedDate)
-                ? requestedDate
-                : today();
-        const storedMeal =
-            requested?.meal ??
-            (readPreference("selectionDay") === today()
-                ? readPreference("meal")
-                : null);
-        meal = validMeal(storedMeal)
-            ? storedMeal
-            : (getSuggestedMeal(place === "all" ? halls[0].id : place) ??
-              meals[0].id);
+        const now = new Date();
+        const pathname = window.location.pathname;
+        const initialLocation =
+            selectionFromPath(pathname) ?? preferredLocation(now);
+        // Remember the root view for Back without rewriting its bookmarkable URL.
+        const rootLocation = pathname === "/" ? initialLocation : undefined;
+        applyLocation(initialLocation, now);
         filterStates = readFilterStates();
+        customFilters = parseCustomFilters(
+            readPreference(customFilterStorageKey)
+        );
         const initialSelection = currentSelection();
 
         const handleOnline = (): void => {
@@ -324,18 +395,13 @@
             currentTime = new Date();
         }, 60_000);
         const handleHistory = (): void => {
-            const next = selectionFromPath(window.location.pathname);
-            if (
-                !next ||
-                (next.place === place &&
-                    next.meal === meal &&
-                    next.dateStr === date)
-            )
-                return;
-            place = next.place;
-            if (next.place !== "all") lastHall = next.place;
-            meal = next.meal;
-            date = next.dateStr;
+            const now = new Date();
+            const pathname = window.location.pathname;
+            const next =
+                pathname === "/"
+                    ? (rootLocation ?? preferredLocation(now))
+                    : selectionFromPath(pathname);
+            if (!next || !applyLocation(next, now)) return;
             rememberSelection(next);
             void loadMenu(currentSelection());
         };
@@ -384,10 +450,7 @@
         window.addEventListener("offline", handleOffline);
         window.addEventListener("popstate", handleHistory);
         navigator.serviceWorker?.addEventListener("message", handleMenuUpdate);
-        // Canonicalize the entry only after the router's initial hooks finish.
         ready = true;
-        if (routerReady && window.location.pathname === "/")
-            saveSelection(initialSelection, true);
         rememberSelection(initialSelection);
         void loadMenu(initialSelection);
 
@@ -429,16 +492,22 @@
         </div>
         <div class="header-actions">
             <button
-                class="text-button today-button"
-                class:current-day={date === campusDate}
+                class="action-button today-button"
+                class:current-day={!canJumpToToday}
                 type="button"
-                disabled={!ready || date === campusDate}
+                disabled={!ready || !canJumpToToday}
                 aria-label="Jump to today"
-                onclick={() => selectDate(campusDate)}
-                ><span class="today-long">Jump to today</span><span
-                    class="today-short">Today</span
-                ></button
+                onclick={jumpToToday}
             >
+                <CalendarCheck size={16} aria-hidden="true" />
+                <span class="today-long">Jump to today</span>
+                <span class="today-short">Today</span>
+            </button>
+            <MenuSearch
+                bind:query={searchQuery}
+                active={hasSearch}
+                disabled={!ready}
+            />
             <button
                 class="icon-button filter-toggle"
                 class:active={hasActiveFilters}
@@ -579,10 +648,15 @@
                     now={currentTime}
                     comparison={effectivePlace === "all"}
                     {hasActiveFilters}
+                    {hasSearch}
                     clearFilters={resetFilters}
+                    clearSearch={() => {
+                        searchQuery = "";
+                    }}
                     retry={() => void loadMenu(currentSelection(), true)}
                     {selectMeal}
                     showHours={(hallId) => hoursDialog.show(hallId)}
+                    showDish={(item) => void dishDialog.show(item)}
                 />
             {/each}{/if}
     </div>
@@ -619,11 +693,20 @@
         </footer>{/if}
 </main>
 <HoursDialog bind:this={hoursDialog} />
+<DishDialog bind:this={dishDialog} {online} />
 <FilterDialog
     bind:this={filterDialog}
     states={filterStates}
+    {customFilters}
     activeCount={activeFilterCount}
     cycle={cycleFilter}
+    addCustom={(term) =>
+        saveCustomFilters([...customFilters, { term, state: "on" }])}
+    cycleCustom={cycleCustomFilter}
+    removeCustom={(term) =>
+        saveCustomFilters(
+            customFilters.filter((filter) => filter.term !== term)
+        )}
     clear={resetFilters}
     closed={() => {
         filtersOpen = false;

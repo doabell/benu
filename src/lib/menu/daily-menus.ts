@@ -1,5 +1,9 @@
 import { halls } from "./data";
-import { menuPolicy, MENU_FETCHED_AT } from "./policy";
+import {
+    isUsableMenuTimestamp,
+    menuLifetimeSeconds,
+    MENU_FETCHED_AT
+} from "./policy";
 import { isValidDateString } from "./validation";
 import type { MenuSection } from "./types";
 
@@ -38,10 +42,11 @@ export const isUsableMenus = (
     now = Date.now()
 ): day is DailyMenus =>
     !!day &&
-    Number.isFinite(day.fetchedAt) &&
-    day.fetchedAt > 0 &&
-    day.fetchedAt <= now &&
-    now - day.fetchedAt < menuPolicy.offlineSeconds * 1000;
+    isUsableMenuTimestamp(
+        day.fetchedAt,
+        menuLifetimeSeconds(day.dateStr, now),
+        now
+    );
 
 export function decodeMenus(value: unknown, dateStr: string): DailyMenus {
     if (!value || typeof value !== "object")

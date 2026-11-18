@@ -1,5 +1,9 @@
 import { weekStart } from "../menu/dates";
-import { menuPolicy } from "../menu/policy";
+import {
+    isUsableMenuTimestamp,
+    menuLifetimeSeconds,
+    menuPolicy
+} from "../menu/policy";
 import type { MenuQuery } from "../menu/types";
 import { fetchWeekMenu, type WeekMenu } from "./menu";
 
@@ -13,6 +17,7 @@ export type CacheStatus = "miss" | "hit" | "stale";
 export interface SnapshotResult {
     snapshot: WeekSnapshot;
     status: CacheStatus;
+    refreshError?: unknown;
 }
 
 export const createMenuCacheKey = ({
@@ -21,17 +26,41 @@ export const createMenuCacheKey = ({
     meal
 }: MenuQuery): string => `week-v1:${place}:${meal}:${weekStart(dateStr)}`;
 
-// Only request deduplication is instance-local. The snapshots live in KV,
-// including during development (Wrangler/Miniflare supplies the binding).
+// Dedupe fetches, not cache decisions: requests for the same week can
+// have different freshness requirements depending on the selected day.
 const inFlight = new WeakMap<MenuStore, Map<string, Promise<SnapshotResult>>>();
 
-export function getWeekSnapshot(
+export async function getWeekSnapshot(
     query: MenuQuery,
     store: MenuStore,
     fetcher: typeof fetch = fetch,
     force = false
 ): Promise<SnapshotResult> {
     const key = createMenuCacheKey(query);
+    const stored = await store.get<WeekSnapshot>(key, "json");
+    const saved = stored?.version === 1 ? stored : null;
+    const now = Date.now();
+    const fallback =
+        saved &&
+        isUsableMenuTimestamp(saved.fetchedAt, menuPolicy.offlineSeconds, now)
+            ? saved
+            : null;
+    if (!force && saved) {
+        if (fallback && now - saved.fetchedAt < menuPolicy.refreshMs)
+            return { snapshot: saved, status: "hit" };
+        const result = saved.days[query.dateStr]?.result;
+        const lifetime = menuLifetimeSeconds(query.dateStr, now);
+        // Published past menus and confirmed closures can be used for a year.
+        if (
+            lifetime === menuPolicy.archiveSeconds &&
+            (result === "ok" || result === "closed") &&
+            isUsableMenuTimestamp(saved.fetchedAt, lifetime, now)
+        )
+            return { snapshot: saved, status: "hit" };
+        if (fallback?.retryAfter && fallback.retryAfter > now)
+            return { snapshot: fallback, status: "stale" };
+    }
+
     let pending = inFlight.get(store);
     if (!pending) {
         pending = new Map();
@@ -39,41 +68,36 @@ export function getWeekSnapshot(
     }
     const existing = pending.get(key);
     if (existing) return existing;
-    const request = loadWeek(query, store, fetcher, force).finally(() =>
-        pending.delete(key)
-    );
+    const request = refreshWeek(
+        query,
+        key,
+        store,
+        fetcher,
+        saved,
+        fallback
+    ).finally(() => pending.delete(key));
     pending.set(key, request);
     return request;
 }
 
-async function loadWeek(
+async function refreshWeek(
     query: MenuQuery,
+    key: string,
     store: MenuStore,
     fetcher: typeof fetch,
-    force: boolean
+    saved: WeekSnapshot | null,
+    fallback: WeekSnapshot | null
 ): Promise<SnapshotResult> {
-    const key = createMenuCacheKey(query);
-    const saved = await store.get<WeekSnapshot>(key, "json");
-    const now = Date.now();
-    const usable =
-        saved?.version === 1 &&
-        saved.fetchedAt <= now &&
-        now - saved.fetchedAt < menuPolicy.offlineSeconds * 1000;
-    const old = usable ? saved : null;
-    if (!force && old && now - old.fetchedAt < menuPolicy.refreshMs)
-        return { snapshot: old, status: "hit" };
-    if (!force && old?.retryAfter && old.retryAfter > now)
-        return { snapshot: old, status: "stale" };
-
     try {
         const menu = await fetchWeekMenu(
             { ...query, dateStr: weekStart(query.dateStr) },
-            fetcher
+            fetcher,
+            saved ?? undefined
         );
         if (
             !Object.keys(menu.days).length &&
-            old &&
-            Object.keys(old.days).length
+            saved &&
+            Object.keys(saved.days).length
         )
             throw new Error(
                 "Nutrislice returned an empty week over a saved menu"
@@ -81,29 +105,30 @@ async function loadWeek(
         const snapshot: WeekSnapshot = {
             ...menu,
             version: 1,
+            // A successful 304 also confirms that the saved week is current.
             fetchedAt: Date.now()
         };
         await store.put(key, JSON.stringify(snapshot), {
-            expirationTtl: menuPolicy.offlineSeconds
+            expirationTtl: menuPolicy.archiveSeconds
         });
         return { snapshot, status: "miss" };
     } catch (error) {
-        if (!old) throw error;
+        if (!fallback) throw error;
         // Back off without extending the age or lifetime of the last good data.
-        const snapshot = { ...old, retryAfter: Date.now() + 5 * 60_000 };
+        const snapshot = { ...fallback, retryAfter: Date.now() + 5 * 60_000 };
         await store
             .put(key, JSON.stringify(snapshot), {
                 expirationTtl: Math.max(
                     60,
                     Math.ceil(
-                        (old.fetchedAt +
-                            menuPolicy.offlineSeconds * 1000 -
+                        (fallback.fetchedAt +
+                            menuPolicy.archiveSeconds * 1000 -
                             Date.now()) /
                             1000
                     )
                 )
             })
             .catch(() => undefined);
-        return { snapshot, status: "stale" };
+        return { snapshot, status: "stale", refreshError: error };
     }
 }

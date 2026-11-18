@@ -12,6 +12,20 @@ export const items: ApiMenuItem[] = [
         food: {
             id: 42,
             name: "Soup",
+            ingredients: "Carrots, lentils, and vegetable stock.",
+            serving_size_info: {
+                serving_size_amount: "1",
+                serving_size_unit: "cup"
+            },
+            has_nutrition_info: true,
+            rounded_nutrition_info: {
+                calories: 140,
+                g_protein: 7,
+                g_carbs: 22,
+                g_fat: 3,
+                g_fiber: 5,
+                mg_sodium: 350
+            },
             icons: {
                 food_icons: [{ name: "Vegan", slug: "vegan", sort_order: 1 }]
             }

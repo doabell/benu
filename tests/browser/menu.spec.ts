@@ -1,10 +1,11 @@
 import { expect, test, type BrowserContext } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 import { menusFixture, menuHeaders, soupSections } from "./fixtures";
+import { campusToday, shiftDate } from "../../src/lib/menu/dates";
 
 const selection = "/proctor/lunch/2026-07-21";
-const body = (name: string) =>
-    JSON.stringify(menusFixture("2026-07-21", () => soupSections(name)));
+const body = (name: string, date = "2026-07-21") =>
+    JSON.stringify(menusFixture(date, () => soupSections(name)));
 const headers = menuHeaders;
 
 async function mockMenus(
@@ -16,7 +17,10 @@ async function mockMenus(
         await route.fulfill({
             status: 200,
             headers: headers(name),
-            body: body(name)
+            body: body(
+                name,
+                new URL(route.request().url()).searchParams.get("date")!
+            )
         });
     });
 }
@@ -32,7 +36,12 @@ test("shows a saved menu immediately during a slow background request", async ({
     await page
         .getByRole("button", { name: "Vegan: included", exact: true })
         .click();
-    await page.getByRole("button", { name: "Done", exact: true }).click();
+    await page
+        .getByRole("button", { name: "Vegan: excluded", exact: true })
+        .click();
+    await page
+        .getByRole("button", { name: "Close filters", exact: true })
+        .click();
     await page.evaluate(async () => {
         await navigator.serviceWorker.ready;
     });
@@ -66,19 +75,21 @@ test("shows a saved menu immediately during a slow background request", async ({
     await expect(
         page.getByRole("button", { name: "Vegan: only", exact: true })
     ).toBeVisible();
-    await page.getByRole("button", { name: "Done", exact: true }).click();
+    await page
+        .getByRole("button", { name: "Close filters", exact: true })
+        .click();
     await page.screenshot({
         path: "test-results/menu-desktop.png",
         fullPage: true
     });
 });
 
-test("starts offline from saved assets and menus", async ({
+test("opens a Today bookmark offline from saved assets and menus", async ({
     page,
     context
 }) => {
     await mockMenus(context);
-    await page.goto(selection);
+    await page.goto("/proctor/lunch");
     await expect(page.getByText("Saved soup", { exact: true })).toBeVisible();
     await page.evaluate(async () => {
         await navigator.serviceWorker.ready;
@@ -89,14 +100,18 @@ test("starts offline from saved assets and menus", async ({
     await context.unroute("**/api/menus?**");
     await context.setOffline(true);
     await page.reload();
+    await expect(page).toHaveURL(/\/proctor\/lunch$/);
     await expect(page.getByText("Saved soup", { exact: true })).toBeVisible();
     await expect(page.getByText("Offline · Saved menus only")).toBeVisible();
     await expect(page.getByText("Loading", { exact: true })).not.toBeVisible();
 });
 
-test("refuses a saved menu older than one day", async ({ page, context }) => {
+test("refuses today's saved menu when it is older than one day", async ({
+    page,
+    context
+}) => {
     await mockMenus(context);
-    await page.goto(selection);
+    await page.goto("/proctor/lunch");
     await expect(page.getByText("Saved soup", { exact: true })).toBeVisible();
     await page.evaluate(async () => {
         await navigator.serviceWorker.ready;
@@ -125,6 +140,62 @@ test("refuses a saved menu older than one day", async ({ page, context }) => {
             .getByRole("region", { name: "Menu", exact: true })
             .getByText("Not saved for offline use.")
     ).toBeVisible();
+});
+
+test("can open a past menu offline even when its original snapshot is a month old", async ({
+    page,
+    context
+}) => {
+    const date = shiftDate(campusToday(), -30);
+    const day = menusFixture(date, () => {
+        const sections = soupSections("Archived soup");
+        sections[0].items[0].details = {
+            servingSize: "1 cup",
+            ingredients: "Lentils and vegetable stock.",
+            nutrition: { calories: 140 }
+        };
+        return sections;
+    });
+    day.fetchedAt = Date.now() - 30 * 86_400_000;
+    const fetchedAt = new Date(day.fetchedAt).toISOString();
+    await context.route("**/api/menus?**", (route) =>
+        route.fulfill({
+            status: 200,
+            headers: { ...headers("archive"), "X-Menu-Fetched-At": fetchedAt },
+            json: day
+        })
+    );
+    await page.goto("/proctor/lunch/" + date);
+    await expect(
+        page.getByText("Archived soup", { exact: true })
+    ).toBeVisible();
+    await expect
+        .poll(() =>
+            page.evaluate(async (date) => {
+                const cache = await caches.open("benu-menus-v1");
+                const response = await cache.match("/api/menus?date=" + date);
+                return (
+                    !!navigator.serviceWorker.controller &&
+                    response?.headers.get("X-Menu-Fetched-At")
+                );
+            }, date)
+        )
+        .toBe(fetchedAt);
+    await context.unroute("**/api/menus?**");
+    await context.setOffline(true);
+    await page.reload();
+    await expect(
+        page.getByText("Archived soup", { exact: true })
+    ).toBeVisible();
+    await expect(page.locator(".saved-menu-note")).toHaveText(
+        "Saved 30 days ago"
+    );
+    await page.getByRole("button", { name: /Archived soup/ }).click();
+    const details = page.getByRole("dialog", { name: "Archived soup" });
+    await expect(
+        details.getByText("Lentils and vegetable stock")
+    ).toBeVisible();
+    await expect(details.getByText("140 kcal")).toBeVisible();
 });
 
 test("starts offline with one saved day containing every hall and meal", async ({

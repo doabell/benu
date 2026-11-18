@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { ExternalLink, Image as ImageIcon } from "@lucide/svelte";
+    import { Clock, ExternalLink } from "@lucide/svelte";
     import HallIcon from "./HallIcon.svelte";
     import { iconMap } from "$lib/menu/data";
     import {
@@ -10,7 +10,7 @@
         getRegularMealHours
     } from "$lib/menu/schedule";
     import type { HallMenuState } from "$lib/menu/view";
-    import type { Hall, MenuSection } from "$lib/menu/types";
+    import type { Hall, MenuItem, MenuSection } from "$lib/menu/types";
 
     let {
         hall,
@@ -21,10 +21,13 @@
         now,
         comparison,
         hasActiveFilters,
+        hasSearch,
         clearFilters,
+        clearSearch,
         retry,
         selectMeal,
-        showHours
+        showHours,
+        showDish
     }: {
         hall: Hall;
         date: string;
@@ -34,10 +37,13 @@
         now: Date;
         comparison: boolean;
         hasActiveFilters: boolean;
+        hasSearch: boolean;
         clearFilters: () => void;
+        clearSearch: () => void;
         retry: () => void;
         selectMeal: (meal: string) => void;
         showHours: (hallId: string) => void;
+        showDish: (item: MenuItem) => void;
     } = $props();
     const mealName = $derived(meal.charAt(0).toUpperCase() + meal.slice(1));
     const hours = $derived(getRegularMealHours(hall.id, meal, date));
@@ -72,11 +78,14 @@
         {#if servingNow}<span class="serving-now">Usually serving now</span
             >{/if}
         <button
-            class="hours-button"
+            class="action-button hours-button"
             type="button"
             aria-label={`View ${hall.name} dining hours`}
-            onclick={() => showHours(hall.id)}>Hours</button
+            onclick={() => showHours(hall.id)}
         >
+            <Clock size={16} aria-hidden="true" />
+            <span>Hours</span>
+        </button>
     </div>
     <div class="menu-content">
         {#if menu.loading}<div class="loading" role="status">
@@ -95,44 +104,57 @@
                     >
                     <ul role="list">
                         {#each section.items as item (item.id)}
+                            {@const name = item.name ?? "Unnamed item"}
+                            {@const nameId = `${sectionId(index)}-item-${item.id}`}
+                            {@const detailsId =
+                                item.subtext || item.iconNames?.length
+                                    ? `${nameId}-details`
+                                    : undefined}
                             <li class="menu-item">
-                                <div class="item-copy">
-                                    <p class="item-name">
-                                        {item.name ?? "Unnamed item"}
-                                    </p>
-                                    {#if item.subtext}<p class="item-subtext">
-                                            {item.subtext}
-                                        </p>{/if}
-                                    {#if item.iconNames?.length}<p
-                                            class="item-icons"
-                                        >
-                                            {#each item.iconNames as name (name)}<span
-                                                    class="item-label"
-                                                    >{#if iconMap[name]}<span
-                                                            class="label-pictogram"
-                                                            aria-hidden="true"
-                                                            >{iconMap[
-                                                                name
-                                                            ].slice(
-                                                                0,
-                                                                -name.length
-                                                            )}</span
-                                                        >{/if}{name}</span
-                                                >{/each}
-                                        </p>{/if}
-                                </div>
-                                <a
-                                    class="image-link"
-                                    href={`https://www.google.com/search?q=${encodeURIComponent(item.name ?? "Menu item")}&tbm=isch`}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    aria-label={`Search for an image of ${item.name ?? "this menu item"}`}
-                                    title="Search images"
-                                    ><ImageIcon
-                                        size={17}
-                                        aria-hidden="true"
-                                    /></a
+                                <button
+                                    class="dish-row"
+                                    type="button"
+                                    aria-haspopup="dialog"
+                                    aria-controls="dish-details"
+                                    aria-labelledby={nameId}
+                                    aria-describedby={detailsId}
+                                    onclick={() => showDish(item)}
                                 >
+                                    <span class="item-name" id={nameId}
+                                        >{name}</span
+                                    >
+                                    {#if detailsId}
+                                        <span id={detailsId}>
+                                            {#if item.subtext}<span
+                                                    class="item-subtext"
+                                                    >{item.subtext}</span
+                                                >{/if}
+                                            {#if item.iconNames?.length}
+                                                <span class="item-icons">
+                                                    {#each item.iconNames as label (label)}
+                                                        <span
+                                                            class="item-label"
+                                                        >
+                                                            {#if iconMap[label]}
+                                                                <span
+                                                                    class="label-pictogram"
+                                                                    aria-hidden="true"
+                                                                    >{iconMap[
+                                                                        label
+                                                                    ].slice(
+                                                                        0,
+                                                                        -label.length
+                                                                    )}</span
+                                                                >
+                                                            {/if}
+                                                            {label}
+                                                        </span>
+                                                    {/each}
+                                                </span>
+                                            {/if}
+                                        </span>
+                                    {/if}
+                                </button>
                             </li>
                         {/each}
                     </ul>
@@ -173,14 +195,26 @@
         {:else if menu.status === "ready" && sections.length === 0}
             <div class="empty-state">
                 <strong>No matches</strong><span
-                    >{hasActiveFilters
-                        ? "No dishes match these filters."
-                        : "No dishes are listed."}</span
-                >{#if hasActiveFilters}<button
-                        class="text-button"
-                        type="button"
-                        onclick={clearFilters}>Clear filters</button
-                    >{/if}
+                    >{hasSearch
+                        ? "No dishes match your search."
+                        : hasActiveFilters
+                          ? "No dishes match these filters."
+                          : "No dishes are listed."}</span
+                >
+                {#if hasSearch || hasActiveFilters}
+                    <div class="empty-actions">
+                        {#if hasSearch}<button
+                                class="text-button"
+                                type="button"
+                                onclick={clearSearch}>Clear search</button
+                            >{/if}
+                        {#if hasActiveFilters}<button
+                                class="text-button"
+                                type="button"
+                                onclick={clearFilters}>Clear filters</button
+                            >{/if}
+                    </div>
+                {/if}
             </div>
         {/if}
     </div>

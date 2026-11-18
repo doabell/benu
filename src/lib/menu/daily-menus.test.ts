@@ -6,8 +6,9 @@ import {
     isUsableMenus
 } from "./daily-menus";
 import { isUsableMenuResponse } from "./policy";
+import { campusToday, shiftDate } from "./dates";
 
-const date = "2026-07-21";
+const date = shiftDate(campusToday(), 1);
 function saved(hoursOld = 0) {
     return {
         ...emptyMenus(date),
@@ -20,7 +21,7 @@ describe("daily menu freshness", () => {
         const fresh = saved(23);
         expect(isUsableMenus(fresh)).toBe(true);
         const response = await encodeMenus(fresh);
-        expect(isUsableMenuResponse(response)).toBe(true);
+        expect(isUsableMenuResponse(response, date)).toBe(true);
         expect(decodeMenus(await response.json(), date).fetchedAt).toBe(
             fresh.fetchedAt
         );
@@ -28,7 +29,7 @@ describe("daily menu freshness", () => {
         expect((await encodeMenus(saved(25))).status).toBe(502);
     });
     it("rejects mismatched dates and malformed menu contents", () => {
-        expect(() => decodeMenus(saved(), "2026-07-22")).toThrow();
+        expect(() => decodeMenus(saved(), shiftDate(date, 1))).toThrow();
         const menus = saved();
         Object.assign(menus.menus["proctor-dining-hall:lunch"], {
             sections: [{ title: "Main", items: null }]
