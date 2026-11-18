@@ -523,6 +523,12 @@ test("opens dish details from the daily response and loads the photo on demand",
                             photoUrl,
                             photoAlt: "Impossible Burger"
                         }
+                    },
+                    {
+                        id: 2,
+                        position: 2,
+                        name: "Garlic Bread Sticks",
+                        iconNames: ["Wheat"]
                     }
                 ]
             }
@@ -539,13 +545,29 @@ test("opens dish details from the daily response and loads the photo on demand",
     });
     try {
         await page.goto(selection.replace("/all/", "/ross/"));
-        const trigger = page.getByRole("button", { name: /Impossible Burger/ });
+        const trigger = page.getByRole("button", {
+            name: "Details for Impossible Burger"
+        });
+        const dialog = page.getByRole("dialog", { name: "Impossible Burger" });
+        const imageSearchName = "Search for an image of Impossible Burger";
+        const imageSearch = dialog.getByRole("link", {
+            name: imageSearchName
+        });
         await expect(trigger).toBeVisible();
+        await expect(
+            page.getByRole("link", { name: imageSearchName })
+        ).toHaveCount(0);
+        await page.getByText("Impossible Burger", { exact: true }).click();
+        await expect(dialog).not.toBeVisible();
         expect(photoRequests).toBe(0);
         const before = await controlBounds(page);
         await trigger.press("Enter");
-        const dialog = page.getByRole("dialog", { name: "Impossible Burger" });
         await expect(dialog).toBeVisible();
+        await expect(imageSearch).toBeInViewport();
+        await expect(imageSearch).toHaveAttribute(
+            "href",
+            "https://www.google.com/search?q=Impossible%20Burger&tbm=isch"
+        );
         await expect(
             dialog.getByText("1 patty per serving", { exact: true })
         ).toBeVisible();
@@ -588,6 +610,19 @@ test("opens dish details from the daily response and loads the photo on demand",
         await expect(dialog).not.toBeVisible();
         await expect(trigger).toBeFocused();
         expectStableBounds(await controlBounds(page), before);
+
+        await page
+            .getByRole("button", { name: "Details for Garlic Bread Sticks" })
+            .click();
+        const basicDialog = page.getByRole("dialog", {
+            name: "Garlic Bread Sticks"
+        });
+        await expect(basicDialog.getByText("Wheat")).toBeVisible();
+        await expect(
+            basicDialog.getByRole("link", {
+                name: "Search for an image of Garlic Bread Sticks"
+            })
+        ).toBeVisible();
     } finally {
         photoGate.resolve();
     }

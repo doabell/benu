@@ -49,7 +49,7 @@ Choose a hall, then a meal and date. Bookmark `/` to open today with your saved 
 
 One request loads the whole date: eight supported hall/meal combinations (Atwater has no breakfast). The browser decodes the response once and reuses it when switching meals or halls. **All halls** is available when the viewport is at least 72rem wide and uses equal columns with the same date and filters. Narrow screens show the last individual hall instead. A saved date supplies the offline fallback. Switching halls keeps the selected meal; a hall that does not offer it shows its available meals instead of silently changing the selection.
 
-Open a dish to see its listed servings, nutrition, ingredients, and photo when Nutrislice supplies them. Text details are saved with the menu, so they can open offline. Photos are loaded when opening a dish on a connection.
+Select a dish's circled info icon to see its listed serving size, nutrition, ingredients, and photo when Nutrislice supplies them. Text details are saved with the menu, so they can open offline. Photos load when you open the popup online, and the image icon opens an image search for the dish.
 
 The filter icon between Jump to today and the theme control opens a grouped dialog. Its headings separate dietary preferences, sourcing, meat and seafood, dairy and alcohol, other allergens, and nuts. Filters cycle through neutral, required (highlighted and underlined), and excluded (struck through). Multiple required labels must all match; any excluded label removes a dish. Preferences stay on the device, and a badge on the icon shows the active count. Clear filters is available in the dialog and in an empty filtered menu. The dialog scrolls independently while its close controls remain visible.
 

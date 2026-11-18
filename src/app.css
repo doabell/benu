@@ -202,7 +202,6 @@ h1 {
     background: transparent;
 }
 .icon-button:hover,
-.image-link:hover,
 .github-link:hover {
     background: var(--surface-muted);
     color: var(--accent);
@@ -482,6 +481,13 @@ input[type="date"]:not(.sr-only) {
     line-height: 1.25;
     overflow-wrap: anywhere;
 }
+.dish-dialog-actions {
+    display: flex;
+    gap: 0.25rem;
+}
+.dish-image-search {
+    color: var(--muted);
+}
 .filter-dialog form,
 .dish-dialog form {
     margin: 0;
@@ -557,14 +563,6 @@ input[type="date"]:not(.sr-only) {
     border-radius: 0.5rem;
     background: var(--surface-muted);
     object-fit: contain;
-}
-.dish-image-search {
-    display: inline-flex;
-    align-items: center;
-    justify-self: start;
-    gap: 0.3rem;
-    min-block-size: 2.75rem;
-    font-size: 1rem;
 }
 .filter-groups {
     display: grid;
@@ -766,7 +764,7 @@ input[type="date"]:not(.sr-only) {
 }
 .menu-item {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) 2.25rem;
+    grid-template-columns: minmax(0, 1fr) auto;
     align-items: start;
     gap: 0.5rem;
     padding-block: 0.5rem;
@@ -776,7 +774,6 @@ input[type="date"]:not(.sr-only) {
     overflow-wrap: break-word;
 }
 .item-name {
-    display: block;
     margin-block-end: 0;
     font-size: 1.125rem;
     font-weight: 400;
@@ -789,9 +786,6 @@ input[type="date"]:not(.sr-only) {
     margin-inline-start: 0.5rem;
     font-size: 0.9375rem;
     line-height: 1.5;
-}
-.item-subtext {
-    display: block;
 }
 .item-icons {
     display: flex;
@@ -806,30 +800,10 @@ input[type="date"]:not(.sr-only) {
 .label-pictogram {
     font-size: 1em;
 }
-.dish-trigger {
-    inline-size: 100%;
-    padding-inline: 0;
-    border: 0;
-    border-radius: 0.4rem;
-    background: transparent;
-    color: inherit;
-    text-align: start;
-}
-.dish-trigger:hover {
-    background: var(--surface-muted);
-}
-.dish-trigger:hover .dish-action {
-    color: var(--accent);
-}
-.image-link,
-.dish-action {
-    display: inline-grid;
-    place-items: center;
+.dish-info-button {
     inline-size: 2.25rem;
     min-block-size: 2.25rem;
-    border-radius: 0.4rem;
     color: var(--muted);
-    text-decoration: none;
 }
 .empty-state {
     display: grid;
@@ -1009,13 +983,9 @@ footer {
     }
 }
 @media (pointer: coarse) {
-    .image-link,
-    .dish-action {
+    .dish-info-button {
         inline-size: 2.75rem;
         min-block-size: 2.75rem;
-    }
-    .menu-item {
-        grid-template-columns: minmax(0, 1fr) 2.75rem;
     }
 }
 .hours-dialog {

@@ -1,6 +1,6 @@
 <script lang="ts">
     import { tick } from "svelte";
-    import { ExternalLink, X } from "@lucide/svelte";
+    import { Image as ImageIcon, X } from "@lucide/svelte";
     import type { DishNutrition, MenuItem } from "$lib/menu/types";
 
     let { online }: { online: boolean } = $props();
@@ -40,28 +40,44 @@
         selected = undefined;
     }}
 >
-    {#if selected?.details}
+    {#if selected}
+        {@const name = selected.name ?? "Unnamed item"}
         {@const details = selected.details}
+        {@const nutrition = details?.nutrition}
         <header class="dish-dialog-heading">
             <div>
-                <h2 id={titleId}>{selected.name ?? "Menu item"}</h2>
-                {#if details.servingSize}
+                <h2 id={titleId}>{name}</h2>
+                {#if details?.servingSize}
                     <p class="dish-serving">
                         {details.servingSize} per serving
                     </p>
                 {/if}
             </div>
-            <form method="dialog">
-                <!-- svelte-ignore a11y_autofocus (The control only receives focus when opening this dialog.) -->
-                <button
-                    class="icon-button"
-                    type="submit"
-                    autofocus
-                    aria-label="Close dish details"
-                >
-                    <X size={20} aria-hidden="true" />
-                </button>
-            </form>
+            <div class="dish-dialog-actions">
+                {#if online}
+                    <a
+                        class="icon-button dish-image-search"
+                        href={`https://www.google.com/search?q=${encodeURIComponent(name)}&tbm=isch`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        aria-label={`Search for an image of ${name}`}
+                        title="Search images"
+                    >
+                        <ImageIcon size={17} aria-hidden="true" />
+                    </a>
+                {/if}
+                <form method="dialog">
+                    <!-- svelte-ignore a11y_autofocus (The control only receives focus when opening this dialog.) -->
+                    <button
+                        class="icon-button"
+                        type="submit"
+                        autofocus
+                        aria-label="Close dish details"
+                    >
+                        <X size={20} aria-hidden="true" />
+                    </button>
+                </form>
+            </div>
         </header>
         <div class="dish-dialog-body">
             {#if selected.iconNames?.length}
@@ -71,12 +87,12 @@
                     {/each}
                 </ul>
             {/if}
-            {#if details.nutrition}
+            {#if nutrition}
                 <section>
                     <h3>Nutrition</h3>
                     <dl class="dish-nutrition">
                         {#each nutrients as nutrient (nutrient.key)}
-                            {@const amount = details.nutrition[nutrient.key]}
+                            {@const amount = nutrition[nutrient.key]}
                             {#if amount !== undefined}
                                 <div>
                                     <dt>{nutrient.label}</dt>
@@ -90,13 +106,16 @@
                     </dl>
                 </section>
             {/if}
-            {#if details.ingredients}
+            {#if details?.ingredients}
                 <section>
                     <h3>Ingredients</h3>
                     <p class="dish-ingredients">{details.ingredients}</p>
                 </section>
             {/if}
-            {#if online && details.photoUrl && !photoFailed}
+            {#if !details}
+                <p class="dish-ingredients">No additional details available.</p>
+            {/if}
+            {#if online && details?.photoUrl && !photoFailed}
                 <img
                     class="dish-photo"
                     src={details.photoUrl}
@@ -110,17 +129,6 @@
                         photoFailed = true;
                     }}
                 />
-            {:else if online}
-                <a
-                    class="dish-image-search"
-                    href={`https://www.google.com/search?q=${encodeURIComponent(selected.name ?? "Menu item")}&tbm=isch`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    >Search images <ExternalLink
-                        size={14}
-                        aria-hidden="true"
-                    /></a
-                >
             {/if}
         </div>
     {/if}
