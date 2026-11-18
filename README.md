@@ -78,21 +78,20 @@ Edit `menu.config.json` to configure the policy:
 
 KV is eventually consistent, so brief cross-region differences are expected. The in-flight deduplication is per instance; KV is not a distributed lock.
 
-## Deploy to Cloudflare Workers
+## Deploy to Cloudflare
 
-The app uses Workers Static Assets and KV. No D1 database, login, dashboard, or Cloudflare Access setup is required for this scope.
+Production at [benu.pages.dev](https://benu.pages.dev) uses the `benu` Cloudflare Pages project. Its Git integration builds `main` and publishes `.svelte-kit/cloudflare`. In the project's production bindings, `MENU_SNAPSHOTS` points to the `BENU_CACHE` KV namespace. If setting up the project again, add that binding before deploying. The Workers configuration below supplies KV to local development and the separate refresh Worker.
 
 ```sh
 bunx wrangler login
-bun run verify
-bun run deploy
+bun run deploy:refresh
 ```
 
-On first deployment, Wrangler automatically provisions `MENU_SNAPSHOTS` for the app and writes the namespace ID into `wrangler.jsonc`. The deploy script then regenerates and deploys the scheduled refresh Worker with **that same namespace ID**. Commit the provisioned ID to make later builds deterministic. If an existing binding is resolved without being written back, copy its ID into `wrangler.jsonc` and rerun deployment.
+This deploys `benu-refresh` with the namespace ID from `wrangler.jsonc`. Run it again after changing the refresh policy. The Pages app and the refresh Worker must use the same KV namespace. For a Pages preview that loads menus, bind `MENU_SNAPSHOTS` to a separate preview namespace.
 
 The schedule uses UTC (`0 */6 * * *` by default), while menu dates use `America/New_York`. The API's `days[]` cover Sunday–Saturday even though its `start_date` field names Monday; cache boundaries use the returned date coverage.
 
-For **Cloudflare Workers Builds**, connect this repository to the `benu` Worker:
+For a standalone Workers deployment, `bun run build` and `bun run deploy` publish the app and the refresh Worker. To automate that setup with **Cloudflare Workers Builds**, connect the repository to the `benu` Worker:
 
 | Setting           | Value                                             |
 | ----------------- | ------------------------------------------------- |
@@ -102,7 +101,7 @@ For **Cloudflare Workers Builds**, connect this repository to the `benu` Worker:
 | Build command     | `bun install --frozen-lockfile && bun run verify` |
 | Deploy command    | `bun run deploy`                                  |
 
-Complete the first authenticated deployment and commit the shared KV ID before enabling automated production builds. The deploy script updates both Workers; do not create a second build integration for the refresh Worker.
+Set the shared KV ID in `wrangler.jsonc` before enabling automated Workers builds. The deploy script updates both Workers.
 
 For a separate branch preview environment:
 

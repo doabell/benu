@@ -19,6 +19,7 @@
         "prepare": "svelte-kit sync",
         "configure": "bun scripts/configure.ts",
         "deploy": "bun scripts/deploy.ts",
+        "deploy:refresh": "bun run configure && wrangler deploy --config .wrangler/refresh.json",
         "deploy:preview": "wrangler deploy --env preview",
         "refresh:local": "bun scripts/refresh-local.ts",
         "test:browser": "playwright test",

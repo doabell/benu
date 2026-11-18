@@ -4,7 +4,12 @@
     "main": ".svelte-kit/cloudflare/_worker.js",
     "compatibility_date": "2026-07-21",
     "compatibility_flags": ["nodejs_als"],
-    "kv_namespaces": [{ "binding": "MENU_SNAPSHOTS" }],
+    "kv_namespaces": [
+        {
+            "binding": "MENU_SNAPSHOTS",
+            "id": "e260034659cf40b5bc92268e33701a35"
+        }
+    ],
     "assets": {
         "binding": "ASSETS",
         "directory": ".svelte-kit/cloudflare"

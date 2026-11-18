@@ -27,5 +27,4 @@ if (
         "Set the provisioned MENU_SNAPSHOTS namespace ID in wrangler.jsonc before deploying the refresh Worker."
     );
 }
-run(["configure"]);
-run(["wrangler", "deploy", "--config", ".wrangler/refresh.json", ...args]);
+run(["deploy:refresh", ...args]);
