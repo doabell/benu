@@ -12,9 +12,9 @@ describe("ingredient lists", () => {
             {
                 name: "Lemon Juice",
                 components:
-                    "(Lemon Juice, Sodium Benzoate, Sodium Metabisulfite, Lemon Oil)"
+                    "Lemon Juice, Sodium Benzoate, Sodium Metabisulfite, Lemon Oil"
             },
-            { name: "Pepper." }
+            { name: "Pepper" }
         ]);
     });
 
@@ -29,7 +29,7 @@ describe("ingredient lists", () => {
             { name: "Salt" },
             {
                 name: "Croutons",
-                components: "(Bread [Wheat, Yeast], Oil (Canola, Soybean))."
+                components: "Bread [Wheat, Yeast], Oil (Canola, Soybean)"
             }
         ]);
     });

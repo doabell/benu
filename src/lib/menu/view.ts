@@ -1,8 +1,19 @@
 import { shiftDate } from "./dates";
-import type { MenuSection } from "./types";
+import type { MenuItem, MenuSection } from "./types";
 
 export type FilterState = "on" | "only" | "off";
 export type FilterStates = Record<string, FilterState>;
+export interface CustomFilter {
+    term: string;
+    state: FilterState;
+}
+export const nextFilterState: Record<FilterState, FilterState> = {
+    on: "only",
+    only: "off",
+    off: "on"
+};
+export const isFilterState = (value: unknown): value is FilterState =>
+    value === "on" || value === "only" || value === "off";
 export const filterGroups = [
     {
         label: "Dietary preferences",
@@ -10,7 +21,7 @@ export const filterGroups = [
     },
     {
         label: "Sourcing",
-        filters: ["Local Ingredient"]
+        filters: ["Local Ingredient", "Recipe From Home"]
     },
     {
         label: "Meat & seafood",
@@ -30,6 +41,36 @@ export const filterGroups = [
     }
 ];
 export const filterNames = filterGroups.flatMap((group) => group.filters);
+
+export const normalizeMenuText = (text: string): string =>
+    text
+        .normalize("NFD")
+        .replace(/\p{M}/gu, "")
+        .toLowerCase()
+        .replace(/[^\p{L}\p{N}]+/gu, " ")
+        .trim();
+
+export function parseCustomFilters(value: string | null): CustomFilter[] {
+    try {
+        const saved: unknown = JSON.parse(value ?? "[]");
+        if (!Array.isArray(saved)) return [];
+        const filters: CustomFilter[] = [];
+        const seen = new Set<string>();
+        for (const entry of saved) {
+            if (typeof entry?.term !== "string" || !isFilterState(entry.state))
+                continue;
+            const term = entry.term.trim();
+            const key = normalizeMenuText(term);
+            if (key && !seen.has(key)) {
+                seen.add(key);
+                filters.push({ term, state: entry.state });
+            }
+        }
+        return filters;
+    } catch {
+        return [];
+    }
+}
 
 export interface HallMenuState {
     sections: MenuSection[];
@@ -54,23 +95,66 @@ export const emptyMenu = (): HallMenuState => ({
     errorMessage: ""
 });
 
+function dishText(item: MenuItem): string[] {
+    return [
+        item.name,
+        item.subtext,
+        item.details?.ingredients,
+        item.details?.servingSize,
+        ...(item.iconNames ?? [])
+    ].flatMap((field) => (field ? [normalizeMenuText(field)] : []));
+}
+
 export function filterSections(
     sections: MenuSection[],
-    states: FilterStates
+    states: FilterStates,
+    {
+        query = "",
+        customFilters = []
+    }: { query?: string; customFilters?: readonly CustomFilter[] } = {}
 ): MenuSection[] {
     const only = filterNames.filter((name) => states[name] === "only");
     const off = filterNames.filter((name) => states[name] === "off");
+    const words = normalizeMenuText(query).split(" ").filter(Boolean);
+    const required = customFilters
+        .filter((filter) => filter.state === "only")
+        .map((filter) => normalizeMenuText(filter.term))
+        .filter(Boolean);
+    const excluded = customFilters
+        .filter((filter) => filter.state === "off")
+        .map((filter) => normalizeMenuText(filter.term))
+        .filter(Boolean);
+    const matchText = words.length || required.length || excluded.length;
     return sections
-        .map((section) => ({
-            ...section,
-            items: section.items.filter((item) => {
-                const labels = item.iconNames ?? [];
-                return (
-                    only.every((name) => labels.includes(name)) &&
-                    off.every((name) => !labels.includes(name))
-                );
-            })
-        }))
+        .map((section) => {
+            const sectionText = words.length
+                ? normalizeMenuText(section.title)
+                : "";
+            return {
+                ...section,
+                items: section.items.filter((item) => {
+                    const labels = item.iconNames ?? [];
+                    if (
+                        !only.every((name) => labels.includes(name)) ||
+                        off.some((name) => labels.includes(name))
+                    )
+                        return false;
+                    if (!matchText) return true;
+
+                    const fields = dishText(item);
+                    const contains = (term: string) =>
+                        fields.some((field) => field.includes(term));
+                    return (
+                        words.every(
+                            (word) =>
+                                sectionText.includes(word) || contains(word)
+                        ) &&
+                        required.every(contains) &&
+                        !excluded.some(contains)
+                    );
+                })
+            };
+        })
         .filter((section) => section.items.length > 0);
 }
 

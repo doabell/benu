@@ -190,7 +190,7 @@ test("can open a past menu offline even when its original snapshot is a month ol
     await page.getByRole("button", { name: /Archived soup/ }).click();
     const details = page.getByRole("dialog", { name: "Archived soup" });
     await expect(
-        details.getByText("Lentils and vegetable stock.")
+        details.getByText("Lentils and vegetable stock")
     ).toBeVisible();
     await expect(details.getByText("140 kcal")).toBeVisible();
 });

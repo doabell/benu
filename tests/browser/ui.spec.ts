@@ -18,7 +18,7 @@ const selection = "/all/lunch/2026-07-21";
 const controlBounds = (page: Page) =>
     page
         .locator(
-            ".controls, .date-selector, .date-selector > button, .hall-tabs > button, .meal-tabs > button, .today-button, .filter-toggle, .theme-toggle"
+            ".controls, .date-selector, .date-selector > button, .hall-tabs > button, .meal-tabs > button, .today-button, .search-toggle, .filter-toggle, .theme-toggle"
         )
         .evaluateAll((elements) =>
             elements
@@ -106,6 +106,16 @@ test("applies all three filter states across equal hall panels and clears empty 
                 .getByRole("region", { name: `${hall} menu`, exact: true })
                 .getByText(`${hall} lunch bowl`, { exact: true })
         ).toBeVisible();
+    const hallHeading = page.getByRole("heading", {
+        name: "Ross",
+        exact: true
+    });
+    await expect(hallHeading.locator("svg")).toHaveCSS(
+        "width",
+        await hallHeading.evaluate(
+            (element) => getComputedStyle(element).fontSize
+        )
+    );
     await page.getByRole("button", { name: "Filters", exact: true }).click();
     await page
         .getByRole("button", { name: "Vegan: included", exact: true })
@@ -146,6 +156,104 @@ test("applies all three filter states across equal hall panels and clears empty 
     await expect(
         page.getByRole("button", { name: "All halls", exact: true })
     ).toHaveAttribute("aria-pressed", "true");
+});
+
+test("searches visible menu text and saves custom filters in the browser", async ({
+    page,
+    context
+}) => {
+    await page.setViewportSize({ width: 320, height: 844 });
+    let menuRequests = 0;
+    await context.route("**/api/menus?**", (route) => {
+        menuRequests++;
+        const date = new URL(route.request().url()).searchParams.get("date")!;
+        const day = menusFixture(date, (hall, meal) => {
+            const sections = menuSections(hallNames[hall], meal);
+            const bowl = sections[0].items[0];
+            bowl.details = { ingredients: "Roasted garlic, Chickpeas" };
+            bowl.iconNames?.push("Recipe From Home");
+            return sections;
+        });
+        return route.fulfill({
+            status: 200,
+            headers: menuHeaders(),
+            json: day
+        });
+    });
+    await page.goto(selection.replace("/all/", "/ross/"));
+    const names = page.locator(".item-name");
+    await expect(names).toHaveCount(2);
+    const home = page
+        .locator(".item-label")
+        .filter({ hasText: "Recipe From Home" });
+    await expect(home.locator(".label-pictogram")).toHaveText("🏡");
+
+    const before = await controlBounds(page);
+    const searchToggle = page.getByRole("button", {
+        name: "Search menus",
+        exact: true
+    });
+    const input = page.getByRole("searchbox", { name: "Search menus" });
+    await searchToggle.click();
+    await expect(input).toBeFocused();
+    await expect(input).toBeInViewport();
+    expectStableBounds(await controlBounds(page), before);
+    await input.fill("GÁRLIC home");
+    await expect(names).toHaveText(["Ross lunch bowl"]);
+    await page.screenshot({ path: "test-results/search-mobile.png" });
+    await input.press("Enter");
+    await expect(input).not.toBeVisible();
+    await expect(searchToggle).toBeFocused();
+    await expect(names).toHaveText(["Ross lunch bowl"]);
+    await searchToggle.click();
+    await input.fill("absent ingredient");
+    const menu = page.getByRole("region", { name: "Menu", exact: true });
+    await expect(menu.getByText("No dishes match your search.")).toBeVisible();
+    await menu.getByRole("button", { name: "Clear search" }).click();
+    await expect(names).toHaveCount(2);
+    expect(menuRequests).toBe(1);
+
+    const filters = page.getByRole("button", { name: "Filters", exact: true });
+    const dialog = page.getByRole("dialog", { name: "Filters" });
+    const term = dialog.getByRole("textbox", { name: "Filter term" });
+    const close = dialog.getByRole("button", { name: "Close filters" });
+    await filters.click();
+    await expect(
+        dialog.getByRole("button", { name: "Recipe From Home: included" })
+    ).toHaveText("🏡Recipe From Home");
+    await term.fill(" garlic ");
+    await term.press("Enter");
+    await expect(names).toHaveCount(2);
+    await dialog.getByRole("button", { name: "garlic: included" }).click();
+    await expect(names).toHaveText(["Ross lunch bowl"]);
+    await page.screenshot({ path: "test-results/custom-filters-mobile.png" });
+    await dialog.getByRole("button", { name: "garlic: only" }).click();
+    await expect(names).toHaveText(["Ross lunch sandwich"]);
+    await close.click();
+
+    await page.reload();
+    await expect(names).toHaveText(["Ross lunch sandwich"]);
+    await filters.click();
+    await expect(
+        dialog.getByRole("button", { name: "garlic: excluded" })
+    ).toBeVisible();
+    await dialog
+        .getByRole("button", { name: "Clear filters", exact: true })
+        .click();
+    await expect(
+        dialog.getByRole("button", { name: "garlic: included" })
+    ).toBeVisible();
+    await expect(names).toHaveCount(2);
+    await dialog
+        .getByRole("button", { name: "Remove custom filter garlic" })
+        .click();
+    await expect(
+        dialog.getByRole("button", { name: "garlic: included" })
+    ).toHaveCount(0);
+    expect(
+        await page.evaluate(() => localStorage.getItem("customFilters"))
+    ).toBeNull();
+    expect(await context.cookies()).toEqual([]);
 });
 
 test("keeps the requested meal when switching to a hall that does not serve it", async ({
@@ -413,8 +521,9 @@ test("opens grouped filters without moving the page and restores keyboard focus"
         .getByRole("button", { name: "Clear filters" });
     const actions = page.locator(".header-actions > button");
     await expect(actions.nth(0)).toHaveAccessibleName("Jump to today");
-    await expect(actions.nth(1)).toHaveAccessibleName("Filters");
-    await expect(actions.nth(2)).toHaveAccessibleName(/Switch color theme/);
+    await expect(actions.nth(1)).toHaveAccessibleName("Search menus");
+    await expect(actions.nth(2)).toHaveAccessibleName("Filters");
+    await expect(actions.nth(3)).toHaveAccessibleName(/Switch color theme/);
 
     for (const width of [320, 1440]) {
         await page.setViewportSize({ width, height: 844 });
@@ -437,7 +546,7 @@ test("opens grouped filters without moving the page and restores keyboard focus"
         await expect(
             dialog.getByRole("button", { name: /^Vegan:/ })
         ).toBeFocused();
-        await expect(dialog.getByRole("group")).toHaveCount(6);
+        await expect(dialog.getByRole("group")).toHaveCount(7);
         await expect(
             dialog
                 .getByRole("group", { name: "Sourcing", exact: true })
@@ -554,36 +663,18 @@ test("shows grouped ingredients and nutrition without loading a dish photo", asy
     });
     await page.goto(selection.replace("/all/", "/ross/"));
     const trigger = page.getByRole("button", {
-        name: "Details for Impossible Burger"
+        name: "Impossible Burger",
+        exact: true
     });
     const dialog = page.getByRole("dialog", { name: "Impossible Burger" });
     const imageSearchName = "Search for an image of Impossible Burger";
     const imageSearch = dialog.getByRole("link", { name: imageSearchName });
     await expect(trigger).toBeVisible();
-    const infoBounds = (await trigger.boundingBox())!;
-    const filterBounds = (await page
-        .getByRole("button", { name: "Filters", exact: true })
-        .boundingBox())!;
-    const rowBounds = (await page
-        .locator(".menu-item")
-        .filter({ has: trigger })
-        .boundingBox())!;
-    expect(infoBounds).toMatchObject({
-        width: filterBounds.width,
-        height: filterBounds.height
-    });
-    expect(infoBounds.x + infoBounds.width).toBeCloseTo(
-        rowBounds.x + rowBounds.width
-    );
-    expect(infoBounds.y + infoBounds.height / 2).toBeCloseTo(
-        rowBounds.y + rowBounds.height / 2
-    );
-    await expect(trigger.locator("svg")).toHaveAttribute("width", "20");
+    await expect(trigger).toHaveAttribute("aria-haspopup", "dialog");
+    await expect(trigger.locator("svg")).toHaveCount(0);
     await expect(page.getByRole("link", { name: imageSearchName })).toHaveCount(
         0
     );
-    await page.getByText("Impossible Burger", { exact: true }).click();
-    await expect(dialog).not.toBeVisible();
     const before = await controlBounds(page);
     await trigger.press("Enter");
     await expect(dialog).toBeVisible();
@@ -607,9 +698,9 @@ test("shows grouped ingredients and nutrition without loading a dish photo", asy
     await expect(
         ingredients.nth(1).locator(".ingredient-components")
     ).toHaveText(
-        "(Lemon Juice, Sodium Benzoate, Sodium Metabisulfite, Lemon Oil)"
+        "Lemon Juice, Sodium Benzoate, Sodium Metabisulfite, Lemon Oil"
     );
-    await expect(ingredients.nth(2)).toHaveText("Pepper.");
+    await expect(ingredients.nth(2)).toHaveText("Pepper");
     const body = dialog.getByRole("region", { name: "Dish information" });
     const disclaimer = body.locator(":scope > :last-child");
     await expect(disclaimer).toHaveText(
@@ -644,7 +735,7 @@ test("shows grouped ingredients and nutrition without loading a dish photo", asy
     expectStableBounds(await controlBounds(page), before);
 
     await page
-        .getByRole("button", { name: "Details for Garlic Bread Sticks" })
+        .getByRole("button", { name: "Garlic Bread Sticks", exact: true })
         .click();
     const basicDialog = page.getByRole("dialog", {
         name: "Garlic Bread Sticks"

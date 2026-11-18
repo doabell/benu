@@ -4,6 +4,7 @@
     import { toggleMode } from "$lib/theme";
     import HallIcon from "$lib/components/HallIcon.svelte";
     import MenuPanel from "$lib/components/MenuPanel.svelte";
+    import MenuSearch from "$lib/components/MenuSearch.svelte";
     import DateSelector from "$lib/components/DateSelector.svelte";
     import HoursDialog from "$lib/components/HoursDialog.svelte";
     import FilterDialog from "$lib/components/FilterDialog.svelte";
@@ -30,8 +31,12 @@
         emptyMenu,
         filterNames,
         filterSections,
+        isFilterState,
+        nextFilterState,
+        normalizeMenuText,
+        parseCustomFilters,
         savedMenuAge,
-        type FilterState,
+        type CustomFilter,
         type FilterStates,
         type HallMenuState
     } from "$lib/menu/view";
@@ -46,6 +51,7 @@
 
     const meals = halls[0].options;
     const filterStorageKey = "filterStates";
+    const customFilterStorageKey = "customFilters";
     const mealEmojis: Record<string, string> = {
         breakfast: "🍳",
         lunch: "🥪",
@@ -58,6 +64,8 @@
     let menus = $state<Record<string, HallMenuState>>({});
     let loadedMenus = $state<DailyMenus>();
     let filterStates = $state<FilterStates>({});
+    let customFilters = $state<CustomFilter[]>([]);
+    let searchQuery = $state("");
     let online = $state(true);
     let currentTime = $state(new Date());
     let filtersOpen = $state(false);
@@ -90,13 +98,17 @@
     const campusDate = $derived(campusToday(currentTime));
     const canJumpToToday = $derived(pinnedDate || date !== campusDate);
     const activeHalls = $derived(hallsFor(effectivePlace));
+    const hasSearch = $derived(!!normalizeMenuText(searchQuery));
     const views = $derived(
         activeHalls.map((hall) => {
             const menu = menus[hall.id] ?? emptyMenu();
             return {
                 hall,
                 menu,
-                sections: filterSections(menu.sections, filterStates)
+                sections: filterSections(menu.sections, filterStates, {
+                    query: searchQuery,
+                    customFilters
+                })
             };
         })
     );
@@ -104,7 +116,8 @@
         filterNames.filter(
             (name) =>
                 filterStates[name] === "off" || filterStates[name] === "only"
-        ).length
+        ).length +
+            customFilters.filter((filter) => filter.state !== "on").length
     );
     const hasActiveFilters = $derived(activeFilterCount > 0);
     const hasMenus = $derived(
@@ -132,8 +145,7 @@
             return Object.fromEntries(
                 Object.entries(parsed).filter(
                     ([name, state]) =>
-                        filterNames.includes(name) &&
-                        (state === "on" || state === "only" || state === "off")
+                        filterNames.includes(name) && isFilterState(state)
                 )
             ) as FilterStates;
         } catch {
@@ -315,20 +327,34 @@
         changeSelection();
     }
     function cycleFilter(name: string): void {
-        const next: Record<FilterState, FilterState> = {
-            on: "only",
-            only: "off",
-            off: "on"
-        };
         filterStates = {
             ...filterStates,
-            [name]: next[filterStates[name] ?? "on"]
+            [name]: nextFilterState[filterStates[name] ?? "on"]
         };
         writePreference(filterStorageKey, JSON.stringify(filterStates));
+    }
+    function saveCustomFilters(filters: CustomFilter[]): void {
+        customFilters = filters;
+        writePreference(
+            customFilterStorageKey,
+            filters.length ? JSON.stringify(filters) : undefined
+        );
+    }
+    function cycleCustomFilter(term: string): void {
+        saveCustomFilters(
+            customFilters.map((filter) =>
+                filter.term === term
+                    ? { ...filter, state: nextFilterState[filter.state] }
+                    : filter
+            )
+        );
     }
     function resetFilters(): void {
         filterStates = {};
         writePreference(filterStorageKey);
+        saveCustomFilters(
+            customFilters.map((filter) => ({ ...filter, state: "on" }))
+        );
     }
 
     onMount(() => {
@@ -346,6 +372,9 @@
         const rootLocation = pathname === "/" ? initialLocation : undefined;
         applyLocation(initialLocation, now);
         filterStates = readFilterStates();
+        customFilters = parseCustomFilters(
+            readPreference(customFilterStorageKey)
+        );
         const initialSelection = currentSelection();
 
         const handleOnline = (): void => {
@@ -466,6 +495,11 @@
                     class="today-short">Today</span
                 ></button
             >
+            <MenuSearch
+                bind:query={searchQuery}
+                active={hasSearch}
+                disabled={!ready}
+            />
             <button
                 class="icon-button filter-toggle"
                 class:active={hasActiveFilters}
@@ -606,7 +640,11 @@
                     now={currentTime}
                     comparison={effectivePlace === "all"}
                     {hasActiveFilters}
+                    {hasSearch}
                     clearFilters={resetFilters}
+                    clearSearch={() => {
+                        searchQuery = "";
+                    }}
                     retry={() => void loadMenu(currentSelection(), true)}
                     {selectMeal}
                     showHours={(hallId) => hoursDialog.show(hallId)}
@@ -651,8 +689,16 @@
 <FilterDialog
     bind:this={filterDialog}
     states={filterStates}
+    {customFilters}
     activeCount={activeFilterCount}
     cycle={cycleFilter}
+    addCustom={(term) =>
+        saveCustomFilters([...customFilters, { term, state: "on" }])}
+    cycleCustom={cycleCustomFilter}
+    removeCustom={(term) =>
+        saveCustomFilters(
+            customFilters.filter((filter) => filter.term !== term)
+        )}
     clear={resetFilters}
     closed={() => {
         filtersOpen = false;

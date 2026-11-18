@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { ExternalLink, Info } from "@lucide/svelte";
+    import { ExternalLink } from "@lucide/svelte";
     import HallIcon from "./HallIcon.svelte";
     import { iconMap } from "$lib/menu/data";
     import {
@@ -21,7 +21,9 @@
         now,
         comparison,
         hasActiveFilters,
+        hasSearch,
         clearFilters,
+        clearSearch,
         retry,
         selectMeal,
         showHours,
@@ -35,7 +37,9 @@
         now: Date;
         comparison: boolean;
         hasActiveFilters: boolean;
+        hasSearch: boolean;
         clearFilters: () => void;
+        clearSearch: () => void;
         retry: () => void;
         selectMeal: (meal: string) => void;
         showHours: (hallId: string) => void;
@@ -99,44 +103,36 @@
                         {#each section.items as item (item.id)}
                             {@const name = item.name ?? "Unnamed item"}
                             <li class="menu-item">
-                                <div class="item-copy">
-                                    <p class="item-name">{name}</p>
-                                    {#if item.subtext}<p class="item-subtext">
-                                            {item.subtext}
-                                        </p>{/if}
-                                    {#if item.iconNames?.length}
-                                        <div class="item-icons">
-                                            {#each item.iconNames as label (label)}
-                                                <span class="item-label">
-                                                    {#if iconMap[label]}
-                                                        <span
-                                                            class="label-pictogram"
-                                                            aria-hidden="true"
-                                                            >{iconMap[
-                                                                label
-                                                            ].slice(
-                                                                0,
-                                                                -label.length
-                                                            )}</span
-                                                        >
-                                                    {/if}
-                                                    {label}
-                                                </span>
-                                            {/each}
-                                        </div>
-                                    {/if}
-                                </div>
                                 <button
-                                    class="icon-button dish-info-button"
+                                    class="item-name"
                                     type="button"
-                                    aria-label={`Details for ${name}`}
-                                    title="Dish details"
                                     aria-haspopup="dialog"
                                     aria-controls="dish-details"
                                     onclick={() => showDish(item)}
+                                    >{name}</button
                                 >
-                                    <Info size={20} aria-hidden="true" />
-                                </button>
+                                {#if item.subtext}<p class="item-subtext">
+                                        {item.subtext}
+                                    </p>{/if}
+                                {#if item.iconNames?.length}
+                                    <div class="item-icons">
+                                        {#each item.iconNames as label (label)}
+                                            <span class="item-label">
+                                                {#if iconMap[label]}
+                                                    <span
+                                                        class="label-pictogram"
+                                                        aria-hidden="true"
+                                                        >{iconMap[label].slice(
+                                                            0,
+                                                            -label.length
+                                                        )}</span
+                                                    >
+                                                {/if}
+                                                {label}
+                                            </span>
+                                        {/each}
+                                    </div>
+                                {/if}
                             </li>
                         {/each}
                     </ul>
@@ -177,14 +173,26 @@
         {:else if menu.status === "ready" && sections.length === 0}
             <div class="empty-state">
                 <strong>No matches</strong><span
-                    >{hasActiveFilters
-                        ? "No dishes match these filters."
-                        : "No dishes are listed."}</span
-                >{#if hasActiveFilters}<button
-                        class="text-button"
-                        type="button"
-                        onclick={clearFilters}>Clear filters</button
-                    >{/if}
+                    >{hasSearch
+                        ? "No dishes match your search."
+                        : hasActiveFilters
+                          ? "No dishes match these filters."
+                          : "No dishes are listed."}</span
+                >
+                {#if hasSearch || hasActiveFilters}
+                    <div class="empty-actions">
+                        {#if hasSearch}<button
+                                class="text-button"
+                                type="button"
+                                onclick={clearSearch}>Clear search</button
+                            >{/if}
+                        {#if hasActiveFilters}<button
+                                class="text-button"
+                                type="button"
+                                onclick={clearFilters}>Clear filters</button
+                            >{/if}
+                    </div>
+                {/if}
             </div>
         {/if}
     </div>
