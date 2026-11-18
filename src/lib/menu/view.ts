@@ -111,7 +111,10 @@ export function formatMenuDate(date: string, today: string): string {
 
 export function savedMenuAge(fetchedAt: number, now: number): string {
     const minutes = Math.max(0, Math.floor((now - fetchedAt) / 60_000));
-    return minutes < 1
-        ? "Saved just now"
-        : `Saved ${relativeFormatter.format(-Math.floor(minutes >= 60 ? minutes / 60 : minutes), minutes >= 60 ? "hour" : "minute")}`;
+    if (minutes < 1) return "Saved just now";
+    const hours = Math.floor(minutes / 60);
+    if (hours >= 24)
+        return `Saved ${relativeFormatter.format(-Math.floor(hours / 24), "day")}`;
+    if (hours) return `Saved ${relativeFormatter.format(-hours, "hour")}`;
+    return `Saved ${relativeFormatter.format(-minutes, "minute")}`;
 }

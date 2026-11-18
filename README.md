@@ -45,7 +45,9 @@ Set `BENU_TEST_PORT` to use a different development test port if 5174 is unavail
 
 ## Browsing menus
 
-Choose a hall, then a meal and date. Menu URLs use `/atwater/breakfast/2026-11-17` (or `/all/lunch/2026-11-17` for comparison). Opening `/` uses saved preferences and replaces the URL once the router is ready. One request loads the whole date: eight supported hall/meal combinations (Atwater has no breakfast). The browser decodes the response once and reuses it when switching meals or halls. **All halls** is available when the viewport is at least 72rem wide and uses equal columns with the same date and filters. Narrow screens show the last individual hall instead. A saved date supplies the offline fallback. Switching halls keeps the selected meal; a hall that does not offer it shows its available meals instead of silently changing the selection.
+Choose a hall, then a meal and date. Bookmark `/` to open today with your saved preferences, or an undated route such as `/ross/lunch` to open a specific hall and meal on today's Eastern date. Choosing a different day adds the date to the URL, as in `/ross/lunch/2026-11-17`. Jump to today returns to the undated route.
+
+One request loads the whole date: eight supported hall/meal combinations (Atwater has no breakfast). The browser decodes the response once and reuses it when switching meals or halls. **All halls** is available when the viewport is at least 72rem wide and uses equal columns with the same date and filters. Narrow screens show the last individual hall instead. A saved date supplies the offline fallback. Switching halls keeps the selected meal; a hall that does not offer it shows its available meals instead of silently changing the selection.
 
 The filter icon between Jump to today and the theme control opens a grouped dialog. Its headings separate dietary preferences, sourcing, meat and seafood, dairy and alcohol, other allergens, and nuts. Filters cycle through neutral, required (highlighted and underlined), and excluded (struck through). Multiple required labels must all match; any excluded label removes a dish. Preferences stay on the device, and a badge on the icon shows the active count. Clear filters is available in the dialog and in an empty filtered menu. The dialog scrolls independently while its close controls remain visible.
 
@@ -61,18 +63,19 @@ Edit `menu.config.json` to configure the policy:
 | ------------------- | ------- | ----------------------------------------------------------------------- |
 | `refreshHours`      | 6       | Nutrislice refresh interval; supports 1, 2, 3, 4, 6, 8, 12, or 24 hours |
 | `browserCacheHours` | 6       | Browser HTTP cache freshness                                            |
-| `offlineHours`      | 24      | Maximum age of a saved snapshot or offline menu                         |
+| `offlineHours`      | 24      | Maximum age of a saved menu for today or a future date                  |
+| `archiveDays`       | 365     | KV retention and freshness limit for past menus                         |
 | `prefetchWeeks`     | 2       | Current and following week; supports 1 or 2                             |
 
 `bun run build` generates `.wrangler/refresh.json` from this policy and `wrangler.jsonc`. The refresh Worker and API share the same policy and KV namespace.
 
 - One upstream request stores all seven returned dates per hall/meal. Eight hall/meal pairs across two weeks means sixteen Nutrislice requests per scheduled refresh, or 64/day with defaults.
-- Requests for other dates and checks of other halls reuse those snapshots. Missing/expired weeks load on demand, with concurrent requests deduplicated within a Worker instance.
+- Requests for other dates and checks of other halls reuse those snapshots. After a date ends in Eastern Time, saved published menus and confirmed closures are served for up to a year from their last successful fetch without contacting Nutrislice. A historical miss fetches its week on demand. Concurrent upstream requests deduplicate within a Worker instance.
 - `/api/menus?date=YYYY-MM-DD` is the only menu endpoint. It reads each weekly snapshot once and returns the selected day's menus together. In-memory results and in-flight requests are shared across hall/meal switches for six hours; the PWA keeps at most 32 saved dates.
-- Refresh failures retain the last successful snapshot, with a five-minute retry backoff and no extension to its original one-day lifetime.
+- Refresh failures retain the last successful snapshot and use a five-minute retry backoff while it is still usable. A failed check does not reset the original fetch time or extend KV retention.
 - Browser responses are fresh for six hours and support conditional requests with ETags. Shared HTTP caching is disabled; KV supplies the shared storage without another freshness window.
 - The PWA shows saved menus immediately and revalidates on access. Changed responses update the visible menu without clearing it, resetting filters, or moving scroll. There is no menu polling timer or refresh prompt.
-- The entire date has one original `fetchedAt`, taken from its oldest contributing source snapshot. The UI and service worker apply the one-day limit to that date together; cache writes cannot renew its age.
+- The entire date has one original `fetchedAt`, taken from its oldest contributing source snapshot. Today and future dates expire after one day. Saved past dates use the archive limit, including offline, within the same 32-date cache.
 - Versioned assets are precached. Documents use network-first with a precached offline fallback. A first visit without a saved menu needs a network connection.
 - Service-worker updates take control automatically on a subsequent visit without forcing the open page to reload.
 

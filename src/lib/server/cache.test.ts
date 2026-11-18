@@ -1,5 +1,6 @@
 import {
     afterAll,
+    afterEach,
     beforeAll,
     beforeEach,
     describe,
@@ -46,7 +47,9 @@ beforeAll(async () => {
 beforeEach(async () => {
     const { keys } = await kv.list();
     await Promise.all(keys.map((key) => kv.delete(key.name)));
+    vi.spyOn(Date, "now").mockReturnValue(Date.parse("2026-07-21T16:00:00Z"));
 });
+afterEach(() => vi.restoreAllMocks());
 afterAll(async () => {
     await mf?.dispose();
 });
@@ -107,7 +110,7 @@ describe("weekly snapshots using real local KV", () => {
         ).toBe(saved.fetchedAt);
     });
 
-    it("never serves data older than the one-day limit", async () => {
+    it("does not serve today's menus beyond the one-day limit", async () => {
         await seed(menuPolicy.offlineSeconds * 1000 + 1000);
         await expect(
             getWeekSnapshot(
@@ -116,6 +119,42 @@ describe("weekly snapshots using real local KV", () => {
                 async () => new Response(null, { status: 503 })
             )
         ).rejects.toThrow();
+    });
+
+    it("uses the archive for a past day while refreshing a stale menu for today in the same week", async () => {
+        const past = { ...query, dateStr: "2026-07-20" };
+        const saved = await seed(30 * 86_400_000);
+        saved.days[past.dateStr] = good;
+        await kv.put(createMenuCacheKey(query), JSON.stringify(saved));
+        const fetcher = vi.fn(async (input: RequestInfo | URL) =>
+            Response.json(weekForUrl(input))
+        );
+        const [history, live] = await Promise.all([
+            getWeekSnapshot(past, store, fetcher),
+            getWeekSnapshot(query, store, fetcher)
+        ]);
+        expect(history.status).toBe("hit");
+        expect(history.snapshot.fetchedAt).toBe(saved.fetchedAt);
+        expect(live.status).toBe("miss");
+        expect(live.snapshot.fetchedAt).toBe(Date.now());
+        expect(fetcher).toHaveBeenCalledTimes(1);
+    });
+
+    it("keeps a newly fetched historical week in KV for one year", async () => {
+        const past = { ...query, dateStr: "2026-06-02" };
+        const fetcher = vi.fn(async (input: RequestInfo | URL) =>
+            Response.json(weekForUrl(input))
+        );
+        await getWeekSnapshot(past, store, fetcher);
+        const { keys } = await kv.list({ prefix: createMenuCacheKey(past) });
+        // Miniflare's runtime clock is independent of the test's Date.now.
+        expect(keys[0]?.expiration).toBeGreaterThan(
+            Math.floor(new Date().getTime() / 1000) +
+                menuPolicy.archiveSeconds -
+                60
+        );
+        await getWeekSnapshot(past, store, fetcher);
+        expect(fetcher).toHaveBeenCalledTimes(1);
     });
 
     it("does not overwrite saved menus with invalid responses", async () => {

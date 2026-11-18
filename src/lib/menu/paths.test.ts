@@ -16,12 +16,16 @@ describe("menu URLs", () => {
             };
             expect(menuPath(selection)).toBe(`/${slug}/breakfast/2026-11-17`);
             expect(selectionFromPath(menuPath(selection))).toEqual(selection);
+            const today = { place, meal: "breakfast" };
+            expect(menuPath(today)).toBe(`/${slug}/breakfast`);
+            expect(selectionFromPath(menuPath(today))).toEqual(today);
         }
     });
     it("rejects invalid halls, meals, dates, and incomplete paths", () => {
         for (const path of [
             "/",
-            "/ross/lunch",
+            "/ross",
+            "/ross/lunch/",
             "/unknown/lunch/2026-11-17",
             "/ross/snack/2026-11-17",
             "/ross/lunch/2026-02-30",

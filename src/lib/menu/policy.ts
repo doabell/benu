@@ -1,4 +1,5 @@
 import config from "../../../menu.config.json" with { type: "json" };
+import { campusToday } from "./dates";
 
 if (![1, 2, 3, 4, 6, 8, 12, 24].includes(config.refreshHours)) {
     throw new Error("refreshHours must be one of 1, 2, 3, 4, 6, 8, 12, 24");
@@ -9,6 +10,8 @@ if (
     config.browserCacheHours > config.offlineHours ||
     !Number.isFinite(config.offlineHours) ||
     config.offlineHours < config.refreshHours ||
+    !Number.isInteger(config.archiveDays) ||
+    config.archiveDays * 24 <= config.offlineHours ||
     !Number.isInteger(config.prefetchWeeks) ||
     config.prefetchWeeks < 1 ||
     config.prefetchWeeks > 2
@@ -20,6 +23,7 @@ export const menuPolicy = {
     refreshMs: config.refreshHours * 3_600_000,
     browserSeconds: config.browserCacheHours * 3600,
     offlineSeconds: config.offlineHours * 3600,
+    archiveSeconds: config.archiveDays * 86_400,
     prefetchWeeks: config.prefetchWeeks,
     cron:
         config.refreshHours === 24
@@ -31,15 +35,37 @@ export const MENU_FETCHED_AT = "X-Menu-Fetched-At";
 export const MENU_CACHE_NAME = "benu-menus-v1";
 export const MENU_WORKER_HEADER = "X-Benu-Menu-Worker";
 
-export function isUsableMenuResponse(
-    response: Response,
+export function menuLifetimeSeconds(dateStr: string, now = Date.now()): number {
+    return dateStr < campusToday(new Date(now))
+        ? menuPolicy.archiveSeconds
+        : menuPolicy.offlineSeconds;
+}
+
+export function isUsableMenuTimestamp(
+    fetchedAt: number,
+    lifetimeSeconds: number,
     now = Date.now()
 ): boolean {
-    const fetchedAt = Date.parse(response.headers.get(MENU_FETCHED_AT) ?? "");
+    return (
+        Number.isFinite(fetchedAt) &&
+        fetchedAt > 0 &&
+        fetchedAt <= now &&
+        now - fetchedAt < lifetimeSeconds * 1000
+    );
+}
+
+export function isUsableMenuResponse(
+    response: Response,
+    dateStr: string | null,
+    now = Date.now()
+): boolean {
     return (
         response.status === 200 &&
-        Number.isFinite(fetchedAt) &&
-        fetchedAt <= now &&
-        now - fetchedAt < menuPolicy.offlineSeconds * 1000
+        !!dateStr &&
+        isUsableMenuTimestamp(
+            Date.parse(response.headers.get(MENU_FETCHED_AT) ?? ""),
+            menuLifetimeSeconds(dateStr, now),
+            now
+        )
     );
 }

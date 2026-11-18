@@ -45,7 +45,7 @@ export async function readSavedMenus(
             if (!("caches" in window)) return;
             const cache = await caches.open(MENU_CACHE_NAME);
             const response = await cache.match(menusRequestUrl(dateStr));
-            if (response && isUsableMenuResponse(response)) {
+            if (response && isUsableMenuResponse(response, dateStr)) {
                 const saved = decodeMenus(await response.json(), dateStr);
                 if (
                     isUsableMenus(saved) &&
@@ -99,7 +99,7 @@ export async function fetchMenus(
                         const cache = await caches.open(MENU_CACHE_NAME);
                         const keys = await cache.keys();
                         if (keys.length >= 32) await cache.delete(keys[0]);
-                        if (isUsableMenuResponse(copy))
+                        if (isUsableMenuResponse(copy, dateStr))
                             await cache.put(menusRequestUrl(dateStr), copy);
                     } catch {
                         /* Offline storage is optional. */

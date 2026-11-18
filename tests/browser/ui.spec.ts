@@ -308,6 +308,7 @@ test("falls back to editable native date entry when the picker API is unavailabl
     await page
         .getByRole("button", { name: "Jump to today", exact: true })
         .click();
+    await expect(page).toHaveURL(/\/all\/lunch$/);
     const today = await page.evaluate(() =>
         new Intl.DateTimeFormat("en-CA", {
             timeZone: "America/New_York"

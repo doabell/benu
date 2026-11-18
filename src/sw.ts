@@ -25,22 +25,28 @@ void self.skipWaiting();
 clientsClaim();
 cleanupOutdatedCaches();
 
+const menuDate = (request: Request): string | null =>
+    new URL(request.url).searchParams.get("date");
+
 const dayCache = new StaleWhileRevalidate({
     cacheName: MENU_CACHE_NAME,
     plugins: [
         {
-            async cacheWillUpdate({ response }) {
-                return isUsableMenuResponse(response) ? response : null;
+            async cacheWillUpdate({ request, response }) {
+                return isUsableMenuResponse(response, menuDate(request))
+                    ? response
+                    : null;
             },
-            async cachedResponseWillBeUsed({ cachedResponse }) {
-                return cachedResponse && isUsableMenuResponse(cachedResponse)
+            async cachedResponseWillBeUsed({ request, cachedResponse }) {
+                return cachedResponse &&
+                    isUsableMenuResponse(cachedResponse, menuDate(request))
                     ? cachedResponse
                     : null;
             }
         },
         new ExpirationPlugin({
             maxEntries: 32,
-            maxAgeSeconds: menuPolicy.offlineSeconds,
+            maxAgeSeconds: menuPolicy.archiveSeconds,
             purgeOnQuotaError: true
         }),
         new BroadcastUpdatePlugin({ headersToCheck: ["ETag"] })
