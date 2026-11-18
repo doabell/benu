@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { X } from "@lucide/svelte";
+    import { Plus, X } from "@lucide/svelte";
     import { dietaryDisclaimer, iconMap } from "$lib/menu/data";
     import {
         filterGroups,
@@ -184,7 +184,10 @@
                     required
                     oninput={() => termInput.setCustomValidity("")}
                 />
-                <button class="add-filter-button" type="submit">Add</button>
+                <button class="action-button" type="submit">
+                    <Plus size={16} aria-hidden="true" />
+                    <span>Add</span>
+                </button>
             </form>
         </div>
     </fieldset>

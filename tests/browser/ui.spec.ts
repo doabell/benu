@@ -226,7 +226,12 @@ test("searches visible menu text and saves custom filters in the browser", async
         dialog.getByRole("button", { name: "Recipe From Home: included" })
     ).toHaveText("🏡Recipe From Home");
     await term.fill(" garlic ");
-    await dialog.getByRole("button", { name: "Add", exact: true }).click();
+    const add = dialog.getByRole("button", { name: "Add", exact: true });
+    await expect(add.locator("svg:first-child")).toHaveAttribute(
+        "aria-hidden",
+        "true"
+    );
+    await add.click();
     await expect(names).toHaveCount(2);
     await dialog.getByRole("button", { name: "garlic: included" }).click();
     await expect(names).toHaveText(["Ross lunch sandwich"]);
@@ -816,8 +821,32 @@ test("shows label pictograms, groups local ingredients, and opens built-in hours
     await expect(
         page.locator(".item-label .label-pictogram").first()
     ).toHaveAttribute("aria-hidden", "true");
-    await expect(page.locator(".header-actions .today-button")).toBeVisible();
+    const today = page.getByRole("button", {
+        name: "Jump to today",
+        exact: true
+    });
+    const trigger = page.getByRole("button", {
+        name: "View Ross dining hours",
+        exact: true
+    });
+    for (const button of [today, trigger]) {
+        await expect(button.locator("svg:first-child")).toBeVisible();
+        await expect(button.locator("svg:first-child")).toHaveAttribute(
+            "aria-hidden",
+            "true"
+        );
+    }
+    await page.evaluate(() => document.fonts.ready);
+    const titleEnd = await page
+        .getByRole("heading", { name: "Benu", exact: true })
+        .evaluate((element) => {
+            const text = document.createRange();
+            text.selectNodeContents(element);
+            return text.getBoundingClientRect().right;
+        });
+    expect(titleEnd).toBeLessThan((await today.boundingBox())!.x);
     await expect(page.locator(".date-selector .today-button")).toHaveCount(0);
+    await page.screenshot({ path: "test-results/menu-actions-mobile.png" });
     await page.getByRole("button", { name: "Filters", exact: true }).click();
     await expect(
         page
@@ -834,10 +863,6 @@ test("shows label pictograms, groups local ingredients, and opens built-in hours
     await page
         .getByRole("button", { name: "Close filters", exact: true })
         .click();
-    const trigger = page.getByRole("button", {
-        name: "View Ross dining hours",
-        exact: true
-    });
     await trigger.click();
     const dialog = page.getByRole("dialog", {
         name: "Dining hours",

@@ -247,6 +247,7 @@ h1 {
     padding: 0.5rem 0.6rem;
     border: 0;
     border-block-end: 2px solid transparent;
+    border-radius: 0.55rem;
     background: transparent;
     color: var(--muted);
     font-size: 1rem;
@@ -364,14 +365,34 @@ input[type="date"]:not(.sr-only) {
 .text-button:hover {
     background: var(--surface-muted);
 }
-.today-button {
-    /* Reserve the text control's track even while its font is loading. */
-    flex: 0 0 8rem;
-    padding-inline: 0.35rem;
+.action-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    min-block-size: 2.75rem;
+    padding: 0.35rem 0.65rem;
     border: 0;
-    background: transparent;
-    text-decoration: underline;
+    border-radius: 0.55rem;
+    background: color-mix(in srgb, var(--accent) 13%, var(--surface));
+    color: var(--accent-strong);
+    font-size: 1rem;
+    font-weight: 500;
+    line-height: 1.4;
     white-space: nowrap;
+}
+.action-button > svg {
+    flex: none;
+}
+.action-button:hover {
+    background: color-mix(in srgb, var(--accent) 20%, var(--surface));
+}
+.action-button:active {
+    background: color-mix(in srgb, var(--accent) 27%, var(--surface));
+}
+.today-button {
+    /* Keep the toolbar in place when the shortcut is hidden on today's menu. */
+    flex: 0 0 8.75rem;
 }
 .today-button.current-day {
     visibility: hidden;
@@ -701,17 +722,8 @@ input[type="date"]:not(.sr-only) {
     min-inline-size: 0;
     gap: 0.35rem;
 }
-.add-filter-button {
-    min-block-size: 3rem;
-    padding-inline: 0.75rem;
-    border: 1px solid transparent;
-    border-radius: 0.4rem;
-    background: var(--accent);
-    color: var(--accent-contrast);
-    font-weight: 500;
-}
-.add-filter-button:hover {
-    background: var(--accent-strong);
+.custom-filter-form .menu-text-input {
+    min-block-size: 2.75rem;
 }
 .custom-filter {
     display: flex;
@@ -796,26 +808,8 @@ input[type="date"]:not(.sr-only) {
     margin-inline-end: 0.25rem;
 }
 .hours-button {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.2rem;
-    margin-inline-start: auto;
-    color: inherit;
-    min-block-size: 2.75rem;
-    padding: 0.25rem 0.35rem;
-    border: 0;
-    border-radius: 0.35rem;
-    background: transparent;
-    font-size: inherit;
-    text-decoration: underline;
-    text-underline-offset: 0.2em;
     grid-column: 2;
     grid-row: 1;
-    align-self: start;
-}
-.hours-button:hover {
-    background: var(--surface-muted);
-    color: var(--text);
 }
 .serving-now {
     grid-column: 1 / -1;
@@ -1058,7 +1052,8 @@ footer {
         grid-area: actions;
     }
     .today-button {
-        flex-basis: 4rem;
+        flex-basis: 4.5rem;
+        padding-inline: 0.25rem;
     }
     .today-long {
         display: none;
@@ -1094,11 +1089,14 @@ footer {
     }
 }
 @media (max-width: 360px) {
+    .site-header {
+        column-gap: 0.25rem;
+    }
+    .brand h1 {
+        font-size: 2rem;
+    }
     .header-actions {
         gap: 0.125rem;
-    }
-    .today-button {
-        flex-basis: 3.5rem;
     }
     .meal-tab {
         padding-inline: 0.25rem;
@@ -1109,7 +1107,7 @@ footer {
         display: none;
     }
 }
-@media (max-width: 300px) {
+@media (width < 320px) {
     .site-header {
         grid-template-areas: "title" "tagline" "actions";
         grid-template-columns: minmax(0, 1fr);

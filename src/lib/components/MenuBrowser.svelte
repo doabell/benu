@@ -1,6 +1,13 @@
 <script lang="ts">
     import { onMount } from "svelte";
-    import { LayoutGrid, ListFilter, Moon, Sun, WifiOff } from "@lucide/svelte";
+    import {
+        CalendarCheck,
+        LayoutGrid,
+        ListFilter,
+        Moon,
+        Sun,
+        WifiOff
+    } from "@lucide/svelte";
     import { toggleMode } from "$lib/theme";
     import HallIcon from "$lib/components/HallIcon.svelte";
     import MenuPanel from "$lib/components/MenuPanel.svelte";
@@ -485,16 +492,17 @@
         </div>
         <div class="header-actions">
             <button
-                class="text-button today-button"
+                class="action-button today-button"
                 class:current-day={!canJumpToToday}
                 type="button"
                 disabled={!ready || !canJumpToToday}
                 aria-label="Jump to today"
                 onclick={jumpToToday}
-                ><span class="today-long">Jump to today</span><span
-                    class="today-short">Today</span
-                ></button
             >
+                <CalendarCheck size={16} aria-hidden="true" />
+                <span class="today-long">Jump to today</span>
+                <span class="today-short">Today</span>
+            </button>
             <MenuSearch
                 bind:query={searchQuery}
                 active={hasSearch}

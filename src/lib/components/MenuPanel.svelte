@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { ExternalLink } from "@lucide/svelte";
+    import { Clock, ExternalLink } from "@lucide/svelte";
     import HallIcon from "./HallIcon.svelte";
     import { iconMap } from "$lib/menu/data";
     import {
@@ -78,11 +78,14 @@
         {#if servingNow}<span class="serving-now">Usually serving now</span
             >{/if}
         <button
-            class="hours-button"
+            class="action-button hours-button"
             type="button"
             aria-label={`View ${hall.name} dining hours`}
-            onclick={() => showHours(hall.id)}>Hours</button
+            onclick={() => showHours(hall.id)}
         >
+            <Clock size={16} aria-hidden="true" />
+            <span>Hours</span>
+        </button>
     </div>
     <div class="menu-content">
         {#if menu.loading}<div class="loading" role="status">
