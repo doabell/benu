@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { fetchWeekMenu } from "./menu";
-import { menuWeek } from "../../../tests/menu-fixtures";
+import { items, menuWeek } from "../../../tests/menu-fixtures";
 
 const query = {
     dateStr: "2026-07-21",
@@ -70,6 +70,76 @@ describe("weekly upstream menus", () => {
                 async () => new Response(null, { status: 503 })
             )
         ).rejects.toThrow("503");
+    });
+
+    it("requires a saved representation for a 304", async () => {
+        await expect(
+            fetchWeekMenu(
+                query,
+                async () => new Response(null, { status: 304 })
+            )
+        ).rejects.toThrow("304");
+    });
+
+    it("keeps valid dish details and ignores malformed optional fields", async () => {
+        const photo =
+            "https://api.nutrislice.com/content/asset/serve/image/jpg/428870/thumbnail2";
+        const result = await fetchWeekMenu(query, async () =>
+            Response.json({
+                days: [
+                    {
+                        date: query.dateStr,
+                        menu_items: [
+                            items[0],
+                            {
+                                ...items[1],
+                                food: {
+                                    ...items[1].food,
+                                    ingredients:
+                                        " Lentils and vegetable stock. ",
+                                    image_url: photo,
+                                    image_alt_text: null,
+                                    has_nutrition_info: true,
+                                    serving_size_info: {
+                                        serving_size_amount: "1",
+                                        serving_size_unit: "cup"
+                                    },
+                                    rounded_nutrition_info: {
+                                        calories: 140,
+                                        g_protein: 7,
+                                        g_fat: "unknown",
+                                        g_fiber: null,
+                                        mg_sodium: 0
+                                    }
+                                }
+                            },
+                            {
+                                ...items[1],
+                                id: 3,
+                                food: {
+                                    id: 43,
+                                    name: "Rice",
+                                    ingredients: 123,
+                                    image_url: "https://example.com/photo.jpg",
+                                    has_nutrition_info: false,
+                                    rounded_nutrition_info: { calories: 0 }
+                                }
+                            }
+                        ]
+                    }
+                ]
+            })
+        );
+        const [soup, rice] = result.days[query.dateStr].sections[0].items;
+        expect(soup.details).toEqual({
+            ingredients: "Lentils and vegetable stock.",
+            servingSize: "1 cup",
+            nutrition: { calories: 140, proteinGrams: 7, sodiumMg: 0 },
+            photoUrl: photo,
+            photoAlt: "Soup"
+        });
+        expect(rice.name).toBe("Rice");
+        expect(rice.details).toBeUndefined();
     });
 
     it("accepts Nutrislice closure notes with null IDs", async () => {

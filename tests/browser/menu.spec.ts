@@ -140,7 +140,15 @@ test("can open a past menu offline even when its original snapshot is a month ol
     context
 }) => {
     const date = shiftDate(campusToday(), -30);
-    const day = menusFixture(date, () => soupSections("Archived soup"));
+    const day = menusFixture(date, () => {
+        const sections = soupSections("Archived soup");
+        sections[0].items[0].details = {
+            servingSize: "1 cup",
+            ingredients: "Lentils and vegetable stock.",
+            nutrition: { calories: 140 }
+        };
+        return sections;
+    });
     day.fetchedAt = Date.now() - 30 * 86_400_000;
     const fetchedAt = new Date(day.fetchedAt).toISOString();
     await context.route("**/api/menus?**", (route) =>
@@ -175,6 +183,12 @@ test("can open a past menu offline even when its original snapshot is a month ol
     await expect(page.locator(".saved-menu-note")).toHaveText(
         "Saved 30 days ago"
     );
+    await page.getByRole("button", { name: /Archived soup/ }).click();
+    const details = page.getByRole("dialog", { name: "Archived soup" });
+    await expect(
+        details.getByText("Lentils and vegetable stock.")
+    ).toBeVisible();
+    await expect(details.getByText("140 kcal")).toBeVisible();
 });
 
 test("starts offline with one saved day containing every hall and meal", async ({

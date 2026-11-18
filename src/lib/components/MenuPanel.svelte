@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { ExternalLink, Image as ImageIcon } from "@lucide/svelte";
+    import { ExternalLink, Image as ImageIcon, Info } from "@lucide/svelte";
     import HallIcon from "./HallIcon.svelte";
     import { iconMap } from "$lib/menu/data";
     import {
@@ -10,7 +10,7 @@
         getRegularMealHours
     } from "$lib/menu/schedule";
     import type { HallMenuState } from "$lib/menu/view";
-    import type { Hall, MenuSection } from "$lib/menu/types";
+    import type { Hall, MenuItem, MenuSection } from "$lib/menu/types";
 
     let {
         hall,
@@ -24,7 +24,8 @@
         clearFilters,
         retry,
         selectMeal,
-        showHours
+        showHours,
+        showDish
     }: {
         hall: Hall;
         date: string;
@@ -38,6 +39,7 @@
         retry: () => void;
         selectMeal: (meal: string) => void;
         showHours: (hallId: string) => void;
+        showDish: (item: MenuItem) => void;
     } = $props();
     const mealName = $derived(meal.charAt(0).toUpperCase() + meal.slice(1));
     const hours = $derived(getRegularMealHours(hall.id, meal, date));
@@ -95,44 +97,39 @@
                     >
                     <ul role="list">
                         {#each section.items as item (item.id)}
-                            <li class="menu-item">
-                                <div class="item-copy">
-                                    <p class="item-name">
-                                        {item.name ?? "Unnamed item"}
-                                    </p>
-                                    {#if item.subtext}<p class="item-subtext">
-                                            {item.subtext}
-                                        </p>{/if}
-                                    {#if item.iconNames?.length}<p
-                                            class="item-icons"
+                            <li>
+                                {#if item.details}
+                                    <button
+                                        class="menu-item dish-trigger"
+                                        type="button"
+                                        aria-haspopup="dialog"
+                                        aria-controls="dish-details"
+                                        onclick={() => showDish(item)}
+                                    >
+                                        {@render dishCopy(item)}
+                                        <span
+                                            class="dish-action"
+                                            aria-hidden="true"
+                                            ><Info size={17} /></span
                                         >
-                                            {#each item.iconNames as name (name)}<span
-                                                    class="item-label"
-                                                    >{#if iconMap[name]}<span
-                                                            class="label-pictogram"
-                                                            aria-hidden="true"
-                                                            >{iconMap[
-                                                                name
-                                                            ].slice(
-                                                                0,
-                                                                -name.length
-                                                            )}</span
-                                                        >{/if}{name}</span
-                                                >{/each}
-                                        </p>{/if}
-                                </div>
-                                <a
-                                    class="image-link"
-                                    href={`https://www.google.com/search?q=${encodeURIComponent(item.name ?? "Menu item")}&tbm=isch`}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    aria-label={`Search for an image of ${item.name ?? "this menu item"}`}
-                                    title="Search images"
-                                    ><ImageIcon
-                                        size={17}
-                                        aria-hidden="true"
-                                    /></a
-                                >
+                                    </button>
+                                {:else}
+                                    <div class="menu-item">
+                                        {@render dishCopy(item)}
+                                        <a
+                                            class="image-link"
+                                            href={`https://www.google.com/search?q=${encodeURIComponent(item.name ?? "Menu item")}&tbm=isch`}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            aria-label={`Search for an image of ${item.name ?? "this menu item"}`}
+                                            title="Search images"
+                                            ><ImageIcon
+                                                size={17}
+                                                aria-hidden="true"
+                                            /></a
+                                        >
+                                    </div>
+                                {/if}
                             </li>
                         {/each}
                     </ul>
@@ -192,3 +189,24 @@
             >View original menu<ExternalLink size={14} aria-hidden="true" /></a
         >{/if}
 </section>
+
+{#snippet dishCopy(item: MenuItem)}
+    <span class="item-copy">
+        <span class="item-name">{item.name ?? "Unnamed item"}</span>
+        {#if item.subtext}<span class="item-subtext">{item.subtext}</span>{/if}
+        {#if item.iconNames?.length}
+            <span class="item-icons">
+                {#each item.iconNames as name (name)}
+                    <span class="item-label">
+                        {#if iconMap[name]}
+                            <span class="label-pictogram" aria-hidden="true"
+                                >{iconMap[name].slice(0, -name.length)}</span
+                            >
+                        {/if}
+                        {name}
+                    </span>
+                {/each}
+            </span>
+        {/if}
+    </span>
+{/snippet}

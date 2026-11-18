@@ -438,7 +438,8 @@ input[type="date"]:not(.sr-only) {
     color: var(--muted);
     font-size: 1rem;
 }
-.filter-dialog {
+.filter-dialog,
+.dish-dialog {
     inline-size: min(100% - 1rem, 42rem);
     max-inline-size: calc(100% - 1rem);
     max-block-size: calc(100svh - 2rem);
@@ -449,31 +450,121 @@ input[type="date"]:not(.sr-only) {
     background: var(--surface);
     color: var(--text);
 }
-.filter-dialog[open] {
+.filter-dialog[open],
+.dish-dialog[open] {
     display: grid;
-    grid-template-rows: auto minmax(0, 1fr) auto;
     gap: 1rem;
     overflow: hidden;
 }
-.filter-dialog-heading {
+.filter-dialog[open] {
+    grid-template-rows: auto minmax(0, 1fr) auto;
+}
+.dish-dialog {
+    inline-size: min(100% - 1rem, 34rem);
+}
+.dish-dialog[open] {
+    grid-template-rows: auto minmax(0, 1fr);
+}
+.filter-dialog-heading,
+.dish-dialog-heading {
     display: flex;
     align-items: start;
     justify-content: space-between;
     gap: 1rem;
 }
-.filter-dialog-heading h2 {
+.filter-dialog-heading h2,
+.dish-dialog-heading h2 {
     margin: 0;
     font-size: 1.75rem;
     font-weight: 500;
 }
-.filter-dialog form {
+.dish-dialog-heading h2 {
+    line-height: 1.25;
+    overflow-wrap: anywhere;
+}
+.filter-dialog form,
+.dish-dialog form {
     margin: 0;
 }
-.filter-dialog-body {
+.filter-dialog-body,
+.dish-dialog-body {
     min-block-size: 0;
     padding: 0.35rem;
     overflow: auto;
     overscroll-behavior: contain;
+}
+.dish-dialog-body {
+    display: grid;
+    align-content: start;
+    gap: 1rem;
+    overflow-wrap: anywhere;
+}
+.dish-dialog-body h3 {
+    margin-block: 0 0.4rem;
+    font-size: 1.125rem;
+    font-weight: 500;
+}
+.dish-serving,
+.dish-labels {
+    color: var(--muted);
+    font-size: 1rem;
+}
+.dish-serving {
+    margin-block: 0.3rem 0;
+}
+.dish-labels {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+.dish-labels li {
+    padding: 0.1rem 0.55rem;
+    border-radius: 0.35rem;
+    background: var(--surface-muted);
+}
+.dish-nutrition {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 4.5rem), 1fr));
+    gap: 0.65rem 0.75rem;
+    margin: 0;
+}
+.dish-nutrition > div {
+    padding-block: 0.35rem;
+    border-block-start: 1px solid var(--border);
+}
+.dish-nutrition dt {
+    color: var(--muted);
+    font-size: 0.875rem;
+}
+.dish-nutrition dd {
+    margin: 0;
+    font-size: 1rem;
+}
+.dish-ingredients {
+    margin: 0;
+    font-size: 1rem;
+    white-space: pre-line;
+}
+.dish-photo {
+    display: block;
+    inline-size: 100%;
+    block-size: auto;
+    max-block-size: 14rem;
+    aspect-ratio: 16 / 9;
+    border-radius: 0.5rem;
+    background: var(--surface-muted);
+    object-fit: contain;
+}
+.dish-image-search {
+    display: inline-flex;
+    align-items: center;
+    justify-self: start;
+    gap: 0.3rem;
+    min-block-size: 2.75rem;
+    font-size: 1rem;
 }
 .filter-groups {
     display: grid;
@@ -685,6 +776,7 @@ input[type="date"]:not(.sr-only) {
     overflow-wrap: break-word;
 }
 .item-name {
+    display: block;
     margin-block-end: 0;
     font-size: 1.125rem;
     font-weight: 400;
@@ -697,6 +789,9 @@ input[type="date"]:not(.sr-only) {
     margin-inline-start: 0.5rem;
     font-size: 0.9375rem;
     line-height: 1.5;
+}
+.item-subtext {
+    display: block;
 }
 .item-icons {
     display: flex;
@@ -711,7 +806,23 @@ input[type="date"]:not(.sr-only) {
 .label-pictogram {
     font-size: 1em;
 }
-.image-link {
+.dish-trigger {
+    inline-size: 100%;
+    padding-inline: 0;
+    border: 0;
+    border-radius: 0.4rem;
+    background: transparent;
+    color: inherit;
+    text-align: start;
+}
+.dish-trigger:hover {
+    background: var(--surface-muted);
+}
+.dish-trigger:hover .dish-action {
+    color: var(--accent);
+}
+.image-link,
+.dish-action {
     display: inline-grid;
     place-items: center;
     inline-size: 2.25rem;
@@ -898,7 +1009,8 @@ footer {
     }
 }
 @media (pointer: coarse) {
-    .image-link {
+    .image-link,
+    .dish-action {
         inline-size: 2.75rem;
         min-block-size: 2.75rem;
     }

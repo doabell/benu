@@ -90,7 +90,8 @@ async function refreshWeek(
     try {
         const menu = await fetchWeekMenu(
             { ...query, dateStr: weekStart(query.dateStr) },
-            fetcher
+            fetcher,
+            saved ?? undefined
         );
         if (
             !Object.keys(menu.days).length &&
@@ -103,6 +104,7 @@ async function refreshWeek(
         const snapshot: WeekSnapshot = {
             ...menu,
             version: 1,
+            // A successful 304 also confirms that the saved week is current.
             fetchedAt: Date.now()
         };
         await store.put(key, JSON.stringify(snapshot), {

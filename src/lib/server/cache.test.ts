@@ -166,6 +166,41 @@ describe("weekly snapshots using real local KV", () => {
         expect(result.status).toBe("stale");
     });
 
+    it("revalidates an unchanged week with its saved ETag and renews freshness", async () => {
+        const tag = '"source-week"';
+        const sourceUpdatedAt = "2026-07-20T10:00:00Z";
+        const fetcher = vi.fn(
+            async (input: RequestInfo | URL, init?: RequestInit) => {
+                if (new Headers(init?.headers).get("If-None-Match") === tag)
+                    return new Response(null, { status: 304 });
+                return Response.json(
+                    { ...weekForUrl(input), last_updated: sourceUpdatedAt },
+                    { headers: { ETag: tag } }
+                );
+            }
+        );
+        const first = await getWeekSnapshot(query, store, fetcher);
+        expect(first.snapshot.sourceEtag).toBe(tag);
+        expect(
+            new Headers(fetcher.mock.calls[0][1]?.headers).get("If-None-Match")
+        ).toBeNull();
+        const checkedAt = Date.now() + menuPolicy.refreshMs + 1_000;
+        vi.mocked(Date.now).mockReturnValue(checkedAt);
+        const revalidated = await getWeekSnapshot(query, store, fetcher);
+        expect(
+            new Headers(fetcher.mock.calls[1][1]?.headers).get("If-None-Match")
+        ).toBe(tag);
+        expect(revalidated.snapshot).toEqual({
+            ...first.snapshot,
+            fetchedAt: checkedAt
+        });
+        expect(revalidated.status).toBe("miss");
+        expect((await getWeekSnapshot(query, store, fetcher)).status).toBe(
+            "hit"
+        );
+        expect(fetcher).toHaveBeenCalledTimes(2);
+    });
+
     it("refreshes all sixteen weekly snapshots even if they are currently fresh", async () => {
         const fetcher = vi.fn(async (input: RequestInfo | URL) =>
             Response.json(weekForUrl(input))

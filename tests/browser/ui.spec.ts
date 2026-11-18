@@ -487,6 +487,112 @@ test("opens grouped filters without moving the page and restores keyboard focus"
     await expect(dialog).not.toBeVisible();
 });
 
+test("opens dish details from the daily response and loads the photo on demand", async ({
+    page,
+    context
+}) => {
+    await page.setViewportSize({ width: 320, height: 680 });
+    const photoUrl =
+        "https://api.nutrislice.com/content/asset/serve/image/jpg/428870/thumbnail2";
+    const photoGate = Promise.withResolvers<void>();
+    let menuRequests = 0;
+    let photoRequests = 0;
+    await context.route("**/api/menus?**", async (route) => {
+        menuRequests++;
+        const date = new URL(route.request().url()).searchParams.get("date")!;
+        const day = menusFixture(date, () => [
+            {
+                title: "Main Street",
+                items: [
+                    {
+                        id: 1,
+                        position: 1,
+                        name: "Impossible Burger",
+                        iconNames: ["Vegan", "Soy"],
+                        details: {
+                            servingSize: "1 patty",
+                            ingredients:
+                                "Soy protein, sunflower and coconut oils, salt, and black pepper.",
+                            nutrition: {
+                                calories: 247,
+                                proteinGrams: 20,
+                                carbGrams: 10,
+                                fatGrams: 14,
+                                sodiumMg: 399
+                            },
+                            photoUrl,
+                            photoAlt: "Impossible Burger"
+                        }
+                    }
+                ]
+            }
+        ]);
+        await route.fulfill({ status: 200, headers: menuHeaders(), json: day });
+    });
+    await context.route(photoUrl, async (route) => {
+        photoRequests++;
+        await photoGate.promise;
+        await route.fulfill({
+            path: "public/android-chrome-192x192.png",
+            contentType: "image/png"
+        });
+    });
+    try {
+        await page.goto(selection.replace("/all/", "/ross/"));
+        const trigger = page.getByRole("button", { name: /Impossible Burger/ });
+        await expect(trigger).toBeVisible();
+        expect(photoRequests).toBe(0);
+        const before = await controlBounds(page);
+        await trigger.press("Enter");
+        const dialog = page.getByRole("dialog", { name: "Impossible Burger" });
+        await expect(dialog).toBeVisible();
+        await expect(
+            dialog.getByText("1 patty per serving", { exact: true })
+        ).toBeVisible();
+        await expect(
+            dialog.getByText("247 kcal", { exact: true })
+        ).toBeVisible();
+        await expect(dialog.getByText("399 mg", { exact: true })).toBeVisible();
+        await expect(dialog.getByText("Fiber", { exact: true })).toHaveCount(0);
+        await expect(dialog.getByText(/Soy protein, sunflower/)).toBeVisible();
+        await expect(
+            dialog.getByRole("button", { name: "Close dish details" })
+        ).toBeFocused();
+        const photo = dialog.getByRole("img", { name: "Impossible Burger" });
+        const photoSize = (await photo.boundingBox())!;
+        photoGate.resolve();
+        await expect
+            .poll(() =>
+                photo.evaluate(
+                    (element) => (element as HTMLImageElement).naturalWidth
+                )
+            )
+            .toBeGreaterThan(0);
+        expectStableBounds([(await photo.boundingBox())!], [photoSize]);
+        expect(photoRequests).toBe(1);
+        expect(menuRequests).toBe(1);
+        expect(
+            await dialog.evaluate(
+                (element) => element.scrollWidth <= element.clientWidth
+            )
+        ).toBe(true);
+        expect(
+            (
+                await new AxeBuilder({ page })
+                    .withTags(["wcag2a", "wcag2aa", "wcag21aa"])
+                    .analyze()
+            ).violations
+        ).toEqual([]);
+        await page.screenshot({ path: "test-results/dish-details-mobile.png" });
+        await page.keyboard.press("Escape");
+        await expect(dialog).not.toBeVisible();
+        await expect(trigger).toBeFocused();
+        expectStableBounds(await controlBounds(page), before);
+    } finally {
+        photoGate.resolve();
+    }
+});
+
 test("shows label pictograms, groups local ingredients, and opens built-in hours", async ({
     page,
     context

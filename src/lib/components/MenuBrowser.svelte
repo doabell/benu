@@ -7,6 +7,7 @@
     import DateSelector from "$lib/components/DateSelector.svelte";
     import HoursDialog from "$lib/components/HoursDialog.svelte";
     import FilterDialog from "$lib/components/FilterDialog.svelte";
+    import DishDialog from "$lib/components/DishDialog.svelte";
     import { halls } from "$lib/menu/data";
     import { campusToday } from "$lib/menu/dates";
     import { getSuggestedMeal } from "$lib/menu/schedule";
@@ -41,7 +42,7 @@
         type MenuLocation
     } from "$lib/menu/paths";
     import { resolve } from "$app/paths";
-    import type { MenuQuery } from "$lib/menu/types";
+    import type { MenuItem, MenuQuery } from "$lib/menu/types";
 
     const meals = halls[0].options;
     const filterStorageKey = "filterStates";
@@ -67,6 +68,7 @@
     let controlsAnchor: HTMLDivElement;
     let hoursDialog: { show: (hallId: string) => void };
     let filterDialog: { show: () => void };
+    let dishDialog: { show: (item: MenuItem) => Promise<void> };
     let requestNumber = 0;
     // eslint-disable-next-line svelte/prefer-svelte-reactivity -- Timer handles are never rendered.
     const loadingTimers = new Map<string, number>();
@@ -608,6 +610,7 @@
                     retry={() => void loadMenu(currentSelection(), true)}
                     {selectMeal}
                     showHours={(hallId) => hoursDialog.show(hallId)}
+                    showDish={(item) => void dishDialog.show(item)}
                 />
             {/each}{/if}
     </div>
@@ -644,6 +647,7 @@
         </footer>{/if}
 </main>
 <HoursDialog bind:this={hoursDialog} />
+<DishDialog bind:this={dishDialog} {online} />
 <FilterDialog
     bind:this={filterDialog}
     states={filterStates}
