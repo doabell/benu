@@ -122,14 +122,15 @@ test("applies all three filter states across equal hall panels and clears empty 
         .click();
     await expect(page.locator(".filter-status")).toHaveText("1 active");
     await expect(page.locator(".item-name")).toHaveCount(3);
+    await expect(page.locator(".item-name").first()).toContainText("sandwich");
     await expect(
-        page.getByRole("button", { name: "Vegan: only", exact: true })
+        page.getByRole("button", { name: "Vegan: excluded", exact: true })
     ).toHaveText("🥗Vegan");
     await page
-        .getByRole("button", { name: "Vegan: only", exact: true })
+        .getByRole("button", { name: "Vegan: excluded", exact: true })
         .click();
     await expect(page.locator(".item-name")).toHaveCount(3);
-    await expect(page.locator(".item-name").first()).toContainText("sandwich");
+    await expect(page.locator(".item-name").first()).toContainText("bowl");
     await page.locator(".clear-filters").click();
     await expect(page.locator(".item-name")).toHaveCount(6);
     await expect(page.locator(".clear-filters")).not.toBeVisible();
@@ -183,6 +184,9 @@ test("searches visible menu text and saves custom filters in the browser", async
     await page.goto(selection.replace("/all/", "/ross/"));
     const names = page.locator(".item-name");
     await expect(names).toHaveCount(2);
+    await expect(
+        page.getByText("Menu, but better", { exact: true })
+    ).toBeInViewport();
     const home = page
         .locator(".item-label")
         .filter({ hasText: "Recipe From Home" });
@@ -222,12 +226,16 @@ test("searches visible menu text and saves custom filters in the browser", async
         dialog.getByRole("button", { name: "Recipe From Home: included" })
     ).toHaveText("🏡Recipe From Home");
     await term.fill(" garlic ");
-    await term.press("Enter");
+    await dialog.getByRole("button", { name: "Add", exact: true }).click();
     await expect(names).toHaveCount(2);
     await dialog.getByRole("button", { name: "garlic: included" }).click();
+    await expect(names).toHaveText(["Ross lunch sandwich"]);
+    await dialog.getByRole("button", { name: "garlic: excluded" }).click();
     await expect(names).toHaveText(["Ross lunch bowl"]);
     await page.screenshot({ path: "test-results/custom-filters-mobile.png" });
     await dialog.getByRole("button", { name: "garlic: only" }).click();
+    await expect(names).toHaveCount(2);
+    await dialog.getByRole("button", { name: "garlic: included" }).click();
     await expect(names).toHaveText(["Ross lunch sandwich"]);
     await close.click();
 
@@ -508,6 +516,17 @@ test("opens grouped filters without moving the page and restores keyboard focus"
     context
 }) => {
     await page.setViewportSize({ width: 320, height: 844 });
+    await page.emulateMedia({ colorScheme: "dark" });
+    await page.addInitScript(() => {
+        localStorage.setItem(
+            "customFilters",
+            JSON.stringify([
+                { term: "garlic", state: "on" },
+                { term: "roasted peppers", state: "on" },
+                { term: "sweet potatoes", state: "on" }
+            ])
+        );
+    });
     await mockMenus(context);
     await page.goto(selection.replace("/all/", "/ross/"));
     await expect(
@@ -578,6 +597,26 @@ test("opens grouped filters without moving the page and restores keyboard focus"
                         .analyze()
                 ).violations
             ).toEqual([]);
+        } else {
+            const sourcing = (await dialog
+                .getByRole("group", { name: "Sourcing" })
+                .boundingBox())!;
+            const dairy = (await dialog
+                .getByRole("group", { name: "Dairy & alcohol" })
+                .boundingBox())!;
+            const allergens = (await dialog
+                .getByRole("group", { name: "Other allergens" })
+                .boundingBox())!;
+            const nuts = (await dialog
+                .getByRole("group", { name: "Nuts", exact: true })
+                .boundingBox())!;
+            const custom = (await dialog
+                .getByRole("group", { name: "Custom filters" })
+                .boundingBox())!;
+            expect(sourcing.x).toBeGreaterThan(custom.x);
+            expect(dairy.y - (sourcing.y + sourcing.height)).toBeLessThan(18);
+            expect(allergens.y - (dairy.y + dairy.height)).toBeLessThan(18);
+            expect(nuts.y - (allergens.y + allergens.height)).toBeLessThan(18);
         }
         await page.screenshot({ path: `test-results/filters-${width}.png` });
         await page.keyboard.press("Escape");
@@ -587,7 +626,7 @@ test("opens grouped filters without moving the page and restores keyboard focus"
         expectStableBounds(await controlBounds(page), before);
         await trigger.click();
         await expect(
-            dialog.getByRole("button", { name: "Vegan: only", exact: true })
+            dialog.getByRole("button", { name: "Vegan: excluded", exact: true })
         ).toBeVisible();
         await close.click();
         await expect(trigger).toBeFocused();
@@ -671,6 +710,11 @@ test("shows grouped ingredients and nutrition without loading a dish photo", asy
     const imageSearch = dialog.getByRole("link", { name: imageSearchName });
     await expect(trigger).toBeVisible();
     await expect(trigger).toHaveAttribute("aria-haspopup", "dialog");
+    await expect(trigger).toHaveAccessibleDescription(/Vegan.*Soy/);
+    await expect(trigger.locator(".item-name")).toHaveCSS(
+        "text-decoration-line",
+        "none"
+    );
     await expect(trigger.locator("svg")).toHaveCount(0);
     await expect(page.getByRole("link", { name: imageSearchName })).toHaveCount(
         0
@@ -736,6 +780,7 @@ test("shows grouped ingredients and nutrition without loading a dish photo", asy
 
     await page
         .getByRole("button", { name: "Garlic Bread Sticks", exact: true })
+        .locator(".item-label")
         .click();
     const basicDialog = page.getByRole("dialog", {
         name: "Garlic Bread Sticks"

@@ -102,37 +102,56 @@
                     <ul role="list">
                         {#each section.items as item (item.id)}
                             {@const name = item.name ?? "Unnamed item"}
+                            {@const nameId = `${sectionId(index)}-item-${item.id}`}
+                            {@const detailsId =
+                                item.subtext || item.iconNames?.length
+                                    ? `${nameId}-details`
+                                    : undefined}
                             <li class="menu-item">
                                 <button
-                                    class="item-name"
+                                    class="dish-row"
                                     type="button"
                                     aria-haspopup="dialog"
                                     aria-controls="dish-details"
+                                    aria-labelledby={nameId}
+                                    aria-describedby={detailsId}
                                     onclick={() => showDish(item)}
-                                    >{name}</button
                                 >
-                                {#if item.subtext}<p class="item-subtext">
-                                        {item.subtext}
-                                    </p>{/if}
-                                {#if item.iconNames?.length}
-                                    <div class="item-icons">
-                                        {#each item.iconNames as label (label)}
-                                            <span class="item-label">
-                                                {#if iconMap[label]}
-                                                    <span
-                                                        class="label-pictogram"
-                                                        aria-hidden="true"
-                                                        >{iconMap[label].slice(
-                                                            0,
-                                                            -label.length
-                                                        )}</span
-                                                    >
-                                                {/if}
-                                                {label}
-                                            </span>
-                                        {/each}
-                                    </div>
-                                {/if}
+                                    <span class="item-name" id={nameId}
+                                        >{name}</span
+                                    >
+                                    {#if detailsId}
+                                        <span id={detailsId}>
+                                            {#if item.subtext}<span
+                                                    class="item-subtext"
+                                                    >{item.subtext}</span
+                                                >{/if}
+                                            {#if item.iconNames?.length}
+                                                <span class="item-icons">
+                                                    {#each item.iconNames as label (label)}
+                                                        <span
+                                                            class="item-label"
+                                                        >
+                                                            {#if iconMap[label]}
+                                                                <span
+                                                                    class="label-pictogram"
+                                                                    aria-hidden="true"
+                                                                    >{iconMap[
+                                                                        label
+                                                                    ].slice(
+                                                                        0,
+                                                                        -label.length
+                                                                    )}</span
+                                                                >
+                                                            {/if}
+                                                            {label}
+                                                        </span>
+                                                    {/each}
+                                                </span>
+                                            {/if}
+                                        </span>
+                                    {/if}
+                                </button>
                             </li>
                         {/each}
                     </ul>

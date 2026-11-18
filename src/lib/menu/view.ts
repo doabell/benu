@@ -8,39 +8,41 @@ export interface CustomFilter {
     state: FilterState;
 }
 export const nextFilterState: Record<FilterState, FilterState> = {
-    on: "only",
-    only: "off",
-    off: "on"
+    on: "off",
+    off: "only",
+    only: "on"
 };
 export const isFilterState = (value: unknown): value is FilterState =>
     value === "on" || value === "only" || value === "off";
-export const filterGroups = [
-    {
+export const filterGroups = {
+    dietary: {
         label: "Dietary preferences",
         filters: ["Vegan", "Vegetarian", "Halal"]
     },
-    {
+    sourcing: {
         label: "Sourcing",
         filters: ["Local Ingredient", "Recipe From Home"]
     },
-    {
+    meatAndSeafood: {
         label: "Meat & seafood",
         filters: ["Beef", "Pork", "Fish", "Shellfish"]
     },
-    {
+    dairyAndAlcohol: {
         label: "Dairy & alcohol",
         filters: ["Dairy", "Milk", "Alcohol"]
     },
-    {
+    otherAllergens: {
         label: "Other allergens",
         filters: ["Wheat", "Soy", "Egg", "Sesame"]
     },
-    {
+    nuts: {
         label: "Nuts",
         filters: ["Peanuts", "Tree Nuts"]
     }
-];
-export const filterNames = filterGroups.flatMap((group) => group.filters);
+};
+export const filterNames = Object.values(filterGroups).flatMap(
+    (group) => group.filters
+);
 
 export const normalizeMenuText = (text: string): string =>
     text

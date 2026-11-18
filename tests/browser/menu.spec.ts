@@ -37,6 +37,9 @@ test("shows a saved menu immediately during a slow background request", async ({
         .getByRole("button", { name: "Vegan: included", exact: true })
         .click();
     await page
+        .getByRole("button", { name: "Vegan: excluded", exact: true })
+        .click();
+    await page
         .getByRole("button", { name: "Close filters", exact: true })
         .click();
     await page.evaluate(async () => {
